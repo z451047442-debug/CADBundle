@@ -19,7 +19,7 @@
 - 已用累计轮次：7 / 9。
 - 同一问题最大轮次记录：L001 为 2 轮；L004 为 1 轮（均未超过 3 轮上限）。
 - 连续无可验证进展：无。
-- 当前阻塞：无 C 类；B-21 运行时点序未验证；V1 阈值待用户选择；第 5 步通过，第 6 步执行中（B0 已提交，B1 随本记录提交；B1 运行时未验证）。
+- 当前阻塞：无 C 类；B-21 运行时点序未验证；V1 阈值待用户选择；第 5 步通过，第 6 步执行中（B0/B1 已提交，B2 随本记录提交；B1/B2 运行时未验证）。
 
 ## 第 3 步关闭记录
 
@@ -33,6 +33,7 @@
 - EX-01：B0 首次构建因 RC 未包含 `winres.h` 导致语言宏未定义；补 include 后通过。
 - EX-02：B0 导出表因 `/OPT:ICF` 折叠导致 `CanAutoDefer`/`LibInitialize`/`LibShutdown` 别名错误；关闭 COMDAT 折叠后 7 个导出名正确。
 - EX-03：B1 首次构建时 SDK `RunMUIRCT` 因多语言资源拆分失败；关闭该项目后处理（`PostBuildEventUseInBuild=false`），资源内嵌单 `.dlo`。同时为满足验收 3 的字面名称，Utility/对象类显示名使用 `CADAnnotatePanel`/`CADDimension` 等英文标识，面板标题与控件保持中文。B1 仅完成构建/静态验证，运行时未验证。
+- EX-04：B2 首次编译因 SDK 2027 的 `Matrix3(bool)` 弃用、`Dot`/`Cross` 自由函数缺失、字形缓存返回类型与 `CharIterator` 用法不匹配而失败；改为默认 `Matrix3()`、`Point3::DotProd/CrossProd`、非 const 字形返回与 `Char::CharCode()` 后通过。另增加默认 CJK 字体与二级 CJK 回退。属于实现级构建修复，不计方案轮次。
 - 以上为实现级构建修复，不属于第 4 步方案退回或批次返工；累计技术轮次维持 7/9。
 
 ## 备注

@@ -61,6 +61,9 @@
     <ClCompile Include="src\CADText.cpp" />
     <ClCompile Include="src\CADLeader.cpp" />
     <ClCompile Include="src\CADTable.cpp" />
+    <ClCompile Include="src\CADAnnotationCommon.cpp" />
+    <ClCompile Include="src\CADBezFontText.cpp" />
+    <ClCompile Include="src\CADParamBlockHost.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\CADBundle.h" />
@@ -70,6 +73,9 @@
     <ClInclude Include="src\CADText.h" />
     <ClInclude Include="src\CADLeader.h" />
     <ClInclude Include="src\CADTable.h" />
+    <ClInclude Include="src\CADAnnotationCommon.h" />
+    <ClInclude Include="src\CADBezFontText.h" />
+    <ClInclude Include="src\CADParamBlockHost.h" />
     <ClInclude Include="src\3dsmaxsdk_preinclude.h" />
     <ClInclude Include="res\resource.h" />
   </ItemGroup>
