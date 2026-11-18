@@ -10,6 +10,8 @@
 *.vsidx
 
 # Build outputs
+backup/
+build/
 x64/
 obj/
 Debug/

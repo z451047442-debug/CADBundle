@@ -1,66 +1,82 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="Current" 
-	xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-	<ItemGroup Label="ProjectConfigurations">
-		<ProjectConfiguration Include="Debug|x64">
-			<Configuration>Debug</Configuration>
-			<Platform>x64</Platform>
-		</ProjectConfiguration>
-		<ProjectConfiguration Include="Hybrid|x64">
-			<Configuration>Hybrid</Configuration>
-			<Platform>x64</Platform>
-		</ProjectConfiguration>
-		<ProjectConfiguration Include="Release|x64">
-			<Configuration>Release</Configuration>
-			<Platform>x64</Platform>
-		</ProjectConfiguration>
-	</ItemGroup>
-	<PropertyGroup Label="Globals">
-		<ProjectName>CADBundle</ProjectName>
-		<ProjectGuid>{71893dad-34c2-4947-a597-6daacdd2dc38}</ProjectGuid>
-		<ConfigurationType>DynamicLibrary</ConfigurationType>
-		<MaxSDK>D:\3dsMaxSDK2027\maxsdk</MaxSDK>
-	</PropertyGroup>
-	<Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
-	<Import Project="$(MaxSDK)\ProjectSettings\PropertySheets\3dsmax.general.project.settings.props" />
-	<Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
-	<ImportGroup Label="PropertySheets">
-		<Import Project="$(MaxSDK)\ProjectSettings\PropertySheets\3dsmax.cpp.props" />
-	</ImportGroup>
-	<PropertyGroup>
-		<_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
-		<OutDir Condition="'$(Platform)'=='x64'">D:\PycharmProjects\CADBundle\x64\Release\Plugins\</OutDir>
-		<IntDir>$(ProjectDir)\obj\$(Platform)\$(Configuration)\</IntDir>
-		<TargetName>CADBundle</TargetName>
-		<TargetExt>.dlo</TargetExt>
-	</PropertyGroup>
-	<ItemDefinitionGroup>
-		<ClCompile>
-			<WholeProgramOptimization>false</WholeProgramOptimization>
-			<PreprocessorDefinitions>_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-			<AdditionalIncludeDirectories>$(MaxSdkInc);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-			<WarningLevel>Level4</WarningLevel>
-		</ClCompile>
-		<Link>
-			<AdditionalLibraryDirectories>$(MaxSdkLib);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-			<AdditionalDependencies>bmm.lib;core.lib;Geom.lib;gfx.lib;mesh.lib;maxutil.lib;maxscrpt.lib;manipsys.lib;paramblk2.lib;;%(AdditionalDependencies)</AdditionalDependencies>
-			<ModuleDefinitionFile>CADBundle.def</ModuleDefinitionFile>
-		</Link>
-	</ItemDefinitionGroup>
-	<ItemGroup>
-		<ClCompile Include="CADBundle.cpp" />
-		<ClCompile Include="DllEntry.cpp" />
-	</ItemGroup>
-	<ItemGroup>
-		<None Include="CADBundle.def" />
-	</ItemGroup>
-	<ItemGroup>
-		<ClInclude Include="3dsmaxsdk_preinclude.h" />
-		<ClInclude Include="CADBundle.h" />
-		<ClInclude Include="resource.h" />
-	</ItemGroup>
-	<ItemGroup>
-		<ResourceCompile Include="CADBundle.rc" />
-	</ItemGroup>
-	<Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Hybrid|x64">
+      <Configuration>Hybrid</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectName>CADBundle</ProjectName>
+    <ProjectGuid>{71893dad-34c2-4947-a597-6daacdd2dc38}</ProjectGuid>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <MaxSDK>D:\3dsMaxSDK2027\maxsdk</MaxSDK>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <Import Project="$(MaxSDK)\ProjectSettings\PropertySheets\3dsmax.general.project.settings.props" />
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(MaxSDK)\ProjectSettings\PropertySheets\3dsmax.cpp.props" />
+  </ImportGroup>
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
+    <OutDir>$(ProjectDir)build\$(Platform)\$(Configuration)\plugins\</OutDir>
+    <IntDir>$(ProjectDir)obj\$(Platform)\$(Configuration)\</IntDir>
+    <TargetName>CADBundle</TargetName>
+    <TargetExt>.dlo</TargetExt>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <WholeProgramOptimization>false</WholeProgramOptimization>
+      <PreprocessorDefinitions>_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(MaxSdkInc);$(ProjectDir)src;$(ProjectDir)res;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <WarningLevel>Level4</WarningLevel>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <CharacterSet>Unicode</CharacterSet>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <EnableCOMDATFolding>false</EnableCOMDATFolding>
+      <AdditionalLibraryDirectories>$(MaxSdkLib);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>bmm.lib;core.lib;Geom.lib;gfx.lib;mesh.lib;maxutil.lib;maxscrpt.lib;ManipSys.lib;Paramblk2.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <ModuleDefinitionFile>CADBundle.def</ModuleDefinitionFile>
+    </Link>
+    <ResourceCompile>
+      <AdditionalIncludeDirectories>$(ProjectDir)res;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="src\DllEntry.cpp" />
+    <ClCompile Include="src\CADAnnotatePanel.cpp" />
+    <ClCompile Include="src\CADDimension.cpp" />
+    <ClCompile Include="src\CADText.cpp" />
+    <ClCompile Include="src\CADLeader.cpp" />
+    <ClCompile Include="src\CADTable.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\CADBundle.h" />
+    <ClInclude Include="src\CADBundleIDs.h" />
+    <ClInclude Include="src\CADAnnotatePanel.h" />
+    <ClInclude Include="src\CADDimension.h" />
+    <ClInclude Include="src\CADText.h" />
+    <ClInclude Include="src\CADLeader.h" />
+    <ClInclude Include="src\CADTable.h" />
+    <ClInclude Include="src\3dsmaxsdk_preinclude.h" />
+    <ClInclude Include="res\resource.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="CADBundle.def" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="res\CADBundle.rc" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>

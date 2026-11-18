@@ -1,0 +1,16 @@
+#include "resource.h"
+#include <winres.h>
+
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+#pragma code_page(1252)
+
+STRINGTABLE
+BEGIN
+    IDS_LIBDESCRIPTION  "CAD Annotation Tools"
+    IDS_CATEGORY        "CAD Tools"
+    IDS_UTILITY_CLASS   "CAD Annotation Panel"
+    IDS_DIM_CLASS       "CAD Dimension"
+    IDS_TEXT_CLASS      "CAD Text"
+    IDS_LEADER_CLASS    "CAD Leader"
+    IDS_TABLE_CLASS     "CAD Table"
+END
