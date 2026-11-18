@@ -77,6 +77,21 @@
 - 损坏：未知 chunk 跳过；结构损坏返回 `IO_ERROR`，保持默认状态，不崩溃。
 - 2×3 表格“保存→Reset→重开”实验作为验收 10 前置；若失败，回到设计，不改权威规则。
 
+### 3.1 字段级权威矩阵（B-12）
+
+| 数据 | pblock | 显式 chunk | 权威 | 加载顺序 |
+|---|---|---|---|---|
+| rows/cols | 自动保存 | 表格 chunk 记录 | chunk 覆盖 pblock | 先读 chunk，再设置 rows/cols 与 cellTexts |
+| insertPos | TYPE_POINT3 镜像 | 表格 chunk | chunk | chunk 回填镜像 |
+| cellTexts | TYPE_STRING_TAB 镜像 | 表格 chunk | chunk | 先清空/SetCount，再逐格回填 |
+| cellWidth/cellHeight/颜色 | 自动保存 | 无 | pblock | 系统恢复 |
+| 标注/引线关键点 | TYPE_POINT3 镜像 | 点 chunk | chunk | chunk 回填镜像 |
+| textPosition | TYPE_POINT3 镜像 | 文本 chunk | chunk | chunk 回填镜像 |
+| textString/fontSize/fontName/textColor | 自动保存 | 无 | pblock | 系统恢复 |
+| showXYZ/precision/arrowSize/textHeight/extensionOffset/note | 自动保存 | 无 | pblock | 系统恢复 |
+
+规则：保存时 chunk + pblock 自动写入；加载时 chunk 覆盖镜像；不得用 pblock 反向覆盖 chunk；运行时只改 pblock 镜像。
+
 | Chunk | 值 | 内容 |
 |---|---|---|
 | kChunkDimVersion / Points | 0x0F01 / 0x0F02 | 版本 + P0/P1/P2 |
@@ -93,7 +108,9 @@
 - 绘制：字形样条采样为折线，经 `DrawLineProc`/`gw->polyline` 绘制；颜色 `TEXT_COLOR`/`textColor`；这是对“连续线用 DrawLineProc”的文本特例。
 - 缺字形：跳过或绘制占位框；不崩溃；一次性提示。
 - 对象析构/字体切换关闭句柄；`LibShutdown` 不强制关闭存活对象字体。
-- 表格单元格文本不经过 BezFont，使用 `GraphicsWindow::text`，屏幕固定字体；长文本裁剪/省略在 V10 细化。
+- 表格单元格文本不经过 BezFont，使用 `GraphicsWindow::text`，屏幕固定字体；单元格最大 256 字符，显示超宽省略、存储完整。
+- 表格完全屏幕恒定（U7）与 CAD 模型空间表格习惯不同；README/交付说明注明。
+- DPI 用例见 T21（100/125/150/200%）；验收 3 同时记录显示名与 `NonLocalizedClassName`。
 
 ## 5. 屏幕缩放与 billboard
 

@@ -18,6 +18,7 @@ MSYS_NO_PATHCONV=1 "/d/Program Files/Microsoft Visual Studio/18/Enterprise/MSBui
 - `dumpbin /exports`：LibDescription、LibNumberClasses、LibClassDesc、LibVersion、LibInitialize、LibShutdown、CanAutoDefer。
 - `dumpbin /dependents`：仅预期 CRT/Max 依赖；无 Qt 依赖。
 - 静态检查：`LibNumberClasses=5`；5 个 ClassDesc 索引正确；四个对象 `IsPublic=FALSE`、Utility `TRUE`；两个旧 Class_ID 宏不再出现；无 TODO/`#pragma message`/`To be implemented` 占位；`DrawLineProc` 连续线；箭头闭合；`NonScalingObjectSize * GetVPWorldWidth / 360` 出现于每个 Display。
+- 连续线静态规则：所有 `DrawLine`/`polyline` 调用清单化；连续线必须经 `DrawLineProc` 或 `gw->polyline`；`DrawLine`/`DrawRectangle` 仅允许非几何 UI 白名单（当前为空），任何例外写入文档并评审。
 - 资源审计：`IDS/IDC/IDD` 无重复/未定义；所有 `p_ui` 引用存在；UTF-8 资源编译通过。
 
 ## 2. 运行前备份与安装
@@ -38,19 +39,20 @@ MSYS_NO_PATHCONV=1 "/d/Program Files/Microsoft Visual Studio/18/Enterprise/MSBui
 | T3 面板 | 打开/关闭/重开 10 次 | 点击 Utility 条目 | 单实例；无残留创建模式、无崩溃 |
 | T4 标注创建 | 点击“标注” | 三点：P0、P1、P2 | 对象生成；尺寸线/延伸线/箭头/距离文本正确 |
 | T5 标注参数 | 修改 showXYZ/箭头/文本高度/延伸/颜色/精度 | 修改面板 | 即时刷新；showXYZ 开关正确；精度 0/6 |
-| T6 屏幕恒定 | 固定相机/视口 | 1×/2×/4× | 箭头/文本/延伸线像素极差 ≤2 px 或 ≤5%（V1） |
-| T7 文字 | 单击放置；改文本/字号/字体/颜色/位置 | 修改面板 | 500 ms 内刷新；中文字形；无 `ITextObject` |
+| T6 屏幕恒定 | 固定 1280×720、透视+正交；1×/2×/4×；3 次重复；记录测量点/工具 | 截图量测箭头/文本高度/延伸线像素 | 极差 ≤2 px 或 ≤5%（V1 最终确认）；原始像素数据留证 |
+| T7 文字 | 一次单击（按下+抬起，point 0 提交）；改文本/字号/字体/颜色/位置 | 修改面板 | 500 ms 内刷新；中文字形；无 `ITextObject` |
 | T8 字体缺失 | 输入不存在字体 | 修改面板 | 回退默认/CJK；提示；不崩溃 |
-| T9 引线 | 点击“引线” | 三点 | 折线/箭头/note 正确；屏幕恒定 |
-| T10 表格创建 | 点击“表格” | 单击插入 | rows+1 水平线、cols+1 垂直线 |
+| T9 引线 | 点击“引线” | 三点（point 0/1/2） | 顶点=start/elbow/textPos（1e-4）；箭头尖端=start、dot≥0.999；note 精确；屏幕恒定按 T6 |
+| T10 表格创建 | 点击“表格” | 一次单击（按下+抬起，point 0 提交） | rows+1 水平线、cols+1 垂直线 |
 | T11 表格编辑 | 打开“编辑单元格…” | 改 A1/B2/中文/长文本/空串 | 网格即时显示；确定/取消正确 |
 | T12 行列迁移 | 2×3→3×2、1→50、50→1 | 修改 rows/cols | 按 (row,col) 交集保留；新增空；超出丢弃；不崩溃 |
-| T13 50×50 | 50 行 50 列 | 创建/编辑/保存/重开 | 无崩溃；性能可接受（阈值项目组定） |
+| T13 50×50 | 50 行 50 列 | 创建/编辑/保存/重开 | 无崩溃；创建/编辑/保存重开各 ≤2 s；交互重绘 ≤200 ms（初始目标，记录实测） |
 | T14 持久化 | 四类对象 + 参数 + 表格文本 | 保存→Reset→重开 | 逐字段一致；cellTexts 逐格一致；浮点 1e-4 |
 | T15 2×3 实验 | 六格唯一字符串 | 保存→Reset→重开 | 全部一致；否则 chunk 权威规则回退 |
 | T16 损坏 chunk | 截断/非法 chunk | 打开场景 | 返回 IO_ERROR/默认状态；不崩溃 |
 | T17 撤销/复制 | 创建/修改/复制/撤销/重做 | 标准操作 | 无重复节点/悬挂引用/崩溃 |
-| T18 中止/关闭 | 创建中 Esc/右键/关闭面板 | 固定序列 | 不生成对象；模式清理；重开空闲 |
+| T18 中止/关闭 | 创建中 Esc/右键/关闭面板/切换分类/退出 Max | 固定序列 | 不生成对象；模式清理；无崩溃；重开空闲 |
+| T21 DPI | 100/125/150/200%、多显示器 | 打开/创建/关闭 | 控件不重叠/不截断；记录缩放值与截图 |
 | T19 旧 DLO | 移出/恢复 | 两次启动 | 无类冲突；恢复后旧类可用 |
 | T20 回滚 | 移除新 DLO，恢复旧 DLO | 按第 2 节 | 哈希一致；启动正常 |
 
@@ -95,5 +97,50 @@ MSYS_NO_PATHCONV=1 "/d/Program Files/Microsoft Visual Studio/18/Enterprise/MSBui
 7. 中止/关闭/重开/撤销/复制。
 8. 移除新 DLO，恢复旧 DLO；确认回滚。
 9. 将异常现象、截图、命令输出反馈给项目经理；按严重程度决定回退到第 6/4/2 步。
+
+## 9. B 类验证登记表
+
+| 编号 | 验证点 | 方法/指标 | 批次 | 责任人 |
+|---|---|---|---|---|
+| B-01 | `StartCreatingObject` 对非公开类 | 四按钮各创建 1 个；对象+1；末点退出 | B1/B3–B6 | 实施 |
+| B-02 | BezFont 中文/缺字 | 不存在字体/中文串；回退可见、不崩溃 | B4 | 实施 |
+| B-03 | 像素测量方法 | 固定 1280×720、透视+正交、1×/2×/4×、3 次；屏幕标尺/PIL；留原始像素 | B3/B5 | 项目经理定方法 |
+| B-04 | 50×50 性能 | 创建/编辑/保存重开 ≤2 s；交互重绘 ≤200 ms（初始目标） | B6 | 实施 |
+| B-05 | 保存/重开逐字段 | A10/T14–T16 字段清单；浮点 1e-4 | B7 | 实施 |
+| B-06 | 旧 DLO 恢复 | 移出→测试→恢复→SHA-256/大小一致 | B8 | 实施+用户 |
+| B-07 | 回滚命令 | 见 §10 PowerShell 模板；`git revert` 占位 | B8 | 项目经理 |
+| B-08 | DPI | T21 100/125/150/200%；不重叠/不截断 | B1/B8 | 实施 |
+| B-09 | 显示名/`NonLocalizedClassName` | 证据包记录两者；验收 3 同时检查 | B8 | 项目经理 |
+| B-10 | 分类切换/Max 退出 | T18 扩展；无残留/无崩溃 | B1 | 实施 |
+| B-11 | 竖直标注法向 | p0→p1 沿 Z；回退法向；无 NaN | B3 | 实施 |
+| B-12 | 表格字段权威矩阵 | 06 §3.1 表；加载 chunk 回填 | B7 | 项目经理 |
+| B-13 | A2/07 口径 | `/headers`/`/exports`/`/dependents` 统一 | 返工 | 项目经理 |
+| B-14 | Class_ID 措辞 | “已冻结” | 返工 | 项目经理 |
+| B-15 | 表格 CAD 差异 | 05/06/README 注明 | B6 | 项目经理 |
+| B-16 | 账本轮次 | 统一为 7/9 | 返工 | 项目经理 |
+| B-17 | A8/T9 客观判据 | 坐标 1e-4；箭头 dot≥0.999；note 精确 | 返工 | 项目经理 |
+| B-18 | A12 判据 | 连续线 `DrawLineProc`/`polyline`；`DrawLine/DrawRectangle` 白名单 | 返工 | 项目经理 |
+| B-19 | T6 条件 | 固定相机/视口/测量点/3 次/工具 | 返工 | 项目经理 |
+| B-20 | 长文本策略 | CADText ≤1024 字符；表格 ≤256；显示省略、存储完整 | B6 | 实施 |
+
+## 10. 回滚命令模板（PowerShell，执行前确认）
+
+```powershell
+$pluginDir = "D:\Program Files\3ds Max 2027\3ds Max 2027\plugins"
+$old = Join-Path $pluginDir "CADDimension.dlo"
+$backupDir = "D:\PycharmProjects\CADBundle\backup\plugins"
+$backup = Join-Path $backupDir "CADDimension.dlo"
+New-Item -ItemType Directory -Force -Path $backupDir | Out-Null
+Get-FileHash $old -Algorithm SHA256
+Copy-Item $old $backup -Force
+Move-Item $old (Join-Path $backupDir "CADDimension.moved.dlo") -Force
+# install new: Copy-Item .\build\x64\Release\plugins\CADBundle.dlo $pluginDir
+# rollback: Move-Item (Join-Path $pluginDir "CADBundle.dlo") $backupDir -Force
+# rollback: Copy-Item $backup $old -Force
+Get-FileHash $old -Algorithm SHA256
+```
+
+- 合并后回滚优先 `git revert -m 1 <merge-SHA>`；用 `git log --merges -1 --format=%H` 查找合并提交；不得自行 `reset --hard`；不执行 `git push`。
+- 上述命令未执行；执行前必须再次取得用户确认。
 
 > 本文件与 `00-plan.md` 共同构成第 4 步可执行方案；第 5 步项目总监独立评审通过后才进入第 6 步。

@@ -28,17 +28,18 @@
 
 ## 3. 鼠标交互
 
-- 单击插入；默认 `CLICK_DRAG_CLICK`：
-  - `point==0`：insertPos = world→local；返回 `CREATE_CONTINUE`。
-  - `point==1 && MOUSE_POINT`：确认；`NotifyDependents`；返回 `CREATE_STOP`。
-- `MOUSE_MOVE`：`SnapPreview`，更新 insertPos，`NotifyDependents` + `RedrawViews`。
+- 实现 `int override(int mode) override { return CLICK_MOVE_CLICK; }`：一次用户单击（按下+释放）生成一个 `MOUSE_POINT`，`point==0` 即该次单击。
+- `point==0`：insertPos = world→local；`NotifyDependents`；返回 `CREATE_STOP`。
+- `MOUSE_MOVE`：`SnapPreview`，更新 insertPos，`NotifyDependents` + `RedrawViews`；不提交。
 - `MOUSE_ABORT`：`CREATE_ABORT`；不在回调内调用 `StopCreating`。
+- 证据：`maxapi.h:1940-2031`、`mouseman.h:143-191`；默认模式样例 `pthelp.cpp`/`text.cpp` 使用 point 0/1，本方案用 `CLICK_MOVE_CLICK` 统一“用户点击次数=point 索引”。
 
 ## 4. Display
 
 - `tm=inode->GetObjectTM(t)`；`gw->setTransform(tm)`；`s=ScreenScale(vpt, tm)`。
 - 网格：以 insertPos 为左上/原点，`w=cellWidth*s`，`h=cellHeight*s`；画 `rows+1` 条水平线（长度 `cols*w`）和 `cols+1` 条垂直线（长度 `rows*h`），用 `DrawLineProc`；颜色 `lineColor`。
-- 单元格文本：`cellTexts` 行优先；非空文本用 `gw->text` 在单元格内偏移（约 `0.1*w, 0.1*h`）绘制；颜色 `textColor`；长文本裁剪/省略策略 V10；空表仅网格。
+- 单元格文本：`cellTexts` 行优先；非空文本用 `gw->text` 在单元格内偏移（约 `0.1*w, 0.1*h`）绘制；颜色 `textColor`；单元格文本最大 256 字符，显示超宽时省略号、存储完整；空表仅网格。
+- 尺寸语义：表格完全屏幕恒定是 U7 裁决；与 CAD 模型空间表格习惯不同，README/交付说明需注明；后续可扩展模型尺寸模式。
 - 行列变化后按新行列重绘；`NotifyRefChanged` 失效/重绘；不崩溃。
 - 选中/冻结颜色按 SDK 惯例；保存/恢复 GW 状态。
 - 50×50：避免每帧重建大量字符串；缓存字符串指针/文本布局，仅在参数变化时重建；性能阈值在第 7 步实测。

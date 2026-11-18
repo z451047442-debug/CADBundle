@@ -10,7 +10,7 @@
 - 文本：BezFont 字形轮廓，面向视图绘制；表格单元格用 `GraphicsWindow::text`。
 - 持久化：pblock 保存参数；几何关键点与 `cellTexts` 使用显式自定义 chunk 为权威；pblock 中的点/字符串表为编辑镜像。
 
-## 2. Class_ID（本地生成，冻结候选）
+## 2. Class_ID（本地生成，已冻结）
 
 | 类 | Class_ID |
 |---|---|
@@ -111,6 +111,13 @@ float ScreenScale(ViewExp* vpt, const Matrix3& tm) {
 - 单权威：点/cellTexts 以 chunk 为准；pblock 点/字符串表为镜像；加载后清空/SetCount 再回填；禁止无优先级双写。
 - 加载校验：`cellCount==rows*cols`、rows/cols 1–50、字符串长度上限、点非 NaN/Inf、未知 chunk 跳过、损坏返回 `IO_ERROR` 不崩溃。
 - pblock 参数自动持久化；版本迁移用 `P_VERSION`/`ParamBlock2PLCB`（如需要）。
+
+### 6.6 创建鼠标回调点序（C-01 关闭依据）
+
+- 所有对象 `CreateMouseCallBack` 实现 `int override(int mode) override { return CLICK_MOVE_CLICK; }`。
+- SDK 证据：`maxapi.h:1940-2031` 说明默认 `CLICK_DRAG_CLICK` 下第一次按下/抬起各产生一次 `MOUSE_POINT`；`CLICK_MOVE_CLICK` 在按下并释放后生成一个 point；`mouseman.h:143-191` 定义该模式。
+- 统一后：单点工具在 `point==0` 返回 `CREATE_STOP`；三击工具在 `point==2` 返回 `CREATE_STOP`；`MOUSE_MOVE` 仅预览；`MOUSE_ABORT` 返回 `CREATE_ABORT`；不在回调内调用 `StopCreating`。
+- 默认模式样例 `pthelp.cpp:258-311`/`text.cpp:936-993` 使用 point 0/1；本方案改用 `CLICK_MOVE_CLICK`，使“用户点击次数 = point 索引”，与 A5 的“1 点/3 点”一致。
 
 ## 7. 构建顺序与门禁
 

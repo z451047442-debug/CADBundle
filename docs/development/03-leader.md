@@ -27,6 +27,7 @@
 
 ## 3. 鼠标交互
 
+- 实现 `override(CLICK_MOVE_CLICK)`：point 0/1/2 分别对应第 1/2/3 次用户单击；在 point 2 提交。证据：`maxapi.h:1940-2031`、`mouseman.h:143-191`。
 - `point==0`：start = world→local；`elbow=textPos=start`；返回 `CREATE_CONTINUE`。
 - `point==1`：elbow = world→local；`textPos=elbow`；返回 `CREATE_CONTINUE`。
 - `point==2`：textPos = world→local；`NotifyDependents(FOREVER, PART_ALL, REFMSG_CHANGE)`；返回 `CREATE_STOP`。

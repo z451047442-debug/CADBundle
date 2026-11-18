@@ -25,11 +25,11 @@
 
 ## 3. 鼠标交互
 
-- 单击放置；默认 `CLICK_DRAG_CLICK` 下：
-  - `point==0`：textPosition = world→local；返回 `CREATE_CONTINUE`。
-  - `point==1 && MOUSE_POINT`：确认位置；`NotifyDependents`；返回 `CREATE_STOP`。
-- `MOUSE_MOVE`：`SnapPreview`，更新 textPosition，`NotifyDependents` + `RedrawViews(REDRAW_INTERACTIVE)`。
+- 实现 `int override(int mode) override { return CLICK_MOVE_CLICK; }`：一次用户单击（按下+释放）生成一个 `MOUSE_POINT`，`point==0` 即该次单击。
+- `point==0`：textPosition = world→local；`NotifyDependents`；返回 `CREATE_STOP`。
+- `MOUSE_MOVE`：`SnapPreview`，更新 textPosition，`NotifyDependents` + `RedrawViews(REDRAW_INTERACTIVE)`；不提交。
 - `MOUSE_ABORT`：`CREATE_ABORT`；不在回调内调用 `StopCreating`。
+- 证据：`maxapi.h:1940-2031`、`mouseman.h:143-191`；默认模式样例 `pthelp.cpp`/`text.cpp` 使用 point 0/1，本方案用 `CLICK_MOVE_CLICK` 统一“用户点击次数=point 索引”。
 - 不依赖 `ITextObject`；不修改对象 TM 作为位置权威。
 
 ## 4. Display
@@ -39,7 +39,7 @@
 - `textString` 为空/纯空白：不绘制字形，但保留一个最小包围盒/点标记用于选中；不崩溃。
 - `fontName` 打开失败：回退默认字体，再回退 CJK 字体（如 “Microsoft YaHei”）；一次性状态提示/日志；不阻塞创建。
 - BezFont：`theBezFontManager.OpenFont(fontName,0)`；`BuildCharacterEx(handle, charCode, 1000.0f, shape, width, 1, false)`；按 `fontSize*s/1000` 缩放；billboard 使用 `ViewExp::GetAffineTM` 的视图轴，保证面向视图。
-- 多行/超长文本：MVP 支持单行；换行符按空格/截断处理；最大字符数在实现阶段定（V10），不得崩溃。
+- 多行/超长文本：MVP 支持单行；换行符替换为空格；`textString` 最大 1024 字符；超出视口时显示省略号，存储完整；实现阶段记录（V10）；不得崩溃。
 - 修改 `textString`/`fontSize`/`fontName`/`textColor`/`textPosition` 后，`NotifyRefChanged` 失效字形缓存并重绘；500 ms 内可见（A7）。
 - 选中/冻结颜色按 SDK 惯例；文本颜色可覆盖选择色？选择态优先显示选择色或加亮；文档注明。
 

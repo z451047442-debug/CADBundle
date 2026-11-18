@@ -37,13 +37,15 @@
 - `point==2`：p2 = world→local；`NotifyDependents(FOREVER, PART_ALL, REFMSG_CHANGE)`；返回 `CREATE_STOP`。
 - `MOUSE_MOVE`：`SnapPreview`，更新 pblock 预览点，`NotifyDependents` + `RedrawViews(REDRAW_INTERACTIVE)`。
 - `MOUSE_ABORT`：返回 `CREATE_ABORT`；不在回调内调用 `StopCreating`；确保无持久 snap 状态。
-- 默认 `CLICK_DRAG_CLICK` 下，三点工具在 point 2 提交；单点工具的点序见 CADText/Table 文档。
+- 实现 `override(CLICK_MOVE_CLICK)`：point 0/1/2 分别对应第 1/2/3 次用户单击；在 point 2 提交。证据：`maxapi.h:1940-2031`、`mouseman.h:143-191`。
 
 ## 4. Display
 
 ```
 tm = inode->GetObjectTM(t); gw->setTransform(tm); s = ScreenScale(vpt, tm);
 dir = Normalize(p1-p0); normal = Normalize(Cross(dir, Point3(0,0,1)));
+if (Length(normal) < 1e-6f) normal = Normalize(Cross(dir, Point3(1,0,0)));
+if (Length(normal) < 1e-6f) { /* 跳过尺寸线/箭头/文本，仅点标记 */ }
 offset = DotProd(p2-p0, normal);
 dimP0 = p0 + normal*offset; dimP1 = p1 + normal*offset;
 ```
