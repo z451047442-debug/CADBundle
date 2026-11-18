@@ -1,0 +1,42 @@
+# Visual Studio / IDE
+.vs/
+*.suo
+*.user
+*.userosscache
+*.VC.db
+*.VC.opendb
+*.VC.db-shm
+*.VC.db-wal
+*.vsidx
+
+# Build outputs
+x64/
+obj/
+Debug/
+Release/
+*.dlo
+*.dll
+*.pdb
+*.ilk
+*.obj
+*.lib
+*.exp
+*.tlog
+*.iobj
+*.ipdb
+GeneratedFiles/
+
+# 3ds Max / local test artifacts
+*.max
+*.max.bak
+*.mxb
+
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Local secrets/config
+.env
+.env.*
+*.local
