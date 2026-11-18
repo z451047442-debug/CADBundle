@@ -2,15 +2,57 @@
 #include <winres.h>
 
 LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
-#pragma code_page(1252)
+#pragma code_page(65001)
 
 STRINGTABLE
 BEGIN
-    IDS_LIBDESCRIPTION  "CAD Annotation Tools"
+    IDS_LIBDESCRIPTION  "CAD 注释工具集"
     IDS_CATEGORY        "CAD Tools"
-    IDS_UTILITY_CLASS   "CAD Annotation Panel"
-    IDS_DIM_CLASS       "CAD Dimension"
-    IDS_TEXT_CLASS      "CAD Text"
-    IDS_LEADER_CLASS    "CAD Leader"
-    IDS_TABLE_CLASS     "CAD Table"
+    IDS_UTILITY_CLASS   "CADAnnotatePanel"
+    IDS_DIM_CLASS       "CADDimension"
+    IDS_TEXT_CLASS      "CADText"
+    IDS_LEADER_CLASS    "CADLeader"
+    IDS_TABLE_CLASS     "CADTable"
+    IDS_PANEL_TITLE     "CAD 注释"
+    IDS_BTN_DIM         "标注（三点）"
+    IDS_BTN_TEXT        "文字（单击放置）"
+    IDS_BTN_LEADER      "引线（三点）"
+    IDS_BTN_TABLE       "表格（单击插入）"
+    IDS_DESC_DIM        "起点、终点、尺寸线位置"
+    IDS_DESC_TEXT       "单击放置文字"
+    IDS_DESC_LEADER     "起点、拐点、文本位置"
+    IDS_DESC_TABLE      "单击插入表格"
+    IDS_STATUS_READY    "状态：就绪"
+    IDS_STATUS_CREATING "正在创建：%s"
+    IDS_STATUS_DONE     "已结束创建；若已创建，可在修改面板调整参数"
+    IDS_STATUS_ABORTED  "已取消创建"
+    IDS_STATUS_ERROR    "创建失败"
+    IDS_PARAMS          "参数"
+    IDS_TABLE_EDIT      "编辑单元格..."
+    IDS_FONT_FALLBACK   "字体不可用，已回退"
+    IDS_DEFAULT_TEXT    "文字"
+    IDS_DEFAULT_NOTE    "注释"
+    IDS_ERR_CREATE      "无法进入创建模式"
+    IDS_ERR_FONT        "字体不可用"
+    IDS_ERR_TABLE       "表格操作失败"
+    IDS_ACCEPT          "确定"
+    IDS_CANCEL          "取消"
+    IDS_CLOSE           "关闭"
+END
+
+IDD_CAD_PANEL DIALOGEX 0, 0, 240, 160
+STYLE DS_SETFONT | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX
+CAPTION "CAD 注释"
+FONT 9, "Microsoft YaHei UI", 400, 0, 0x86
+BEGIN
+    PUSHBUTTON      "标注（三点）", IDC_PANEL_BTN_DIM, 10, 10, 110, 18
+    LTEXT           "起点、终点、尺寸线位置", IDC_PANEL_DESC_DIM, 128, 14, 100, 12
+    PUSHBUTTON      "文字（单击放置）", IDC_PANEL_BTN_TEXT, 10, 34, 110, 18
+    LTEXT           "单击放置文字", IDC_PANEL_DESC_TEXT, 128, 38, 100, 12
+    PUSHBUTTON      "引线（三点）", IDC_PANEL_BTN_LEADER, 10, 58, 110, 18
+    LTEXT           "起点、拐点、文本位置", IDC_PANEL_DESC_LEADER, 128, 62, 100, 12
+    PUSHBUTTON      "表格（单击插入）", IDC_PANEL_BTN_TABLE, 10, 82, 110, 18
+    LTEXT           "单击插入表格", IDC_PANEL_DESC_TABLE, 128, 86, 100, 12
+    LTEXT           "状态：就绪", IDC_PANEL_STATUS, 10, 116, 160, 12
+    DEFPUSHBUTTON   "关闭", IDC_PANEL_CLOSE, 180, 112, 50, 18
 END
