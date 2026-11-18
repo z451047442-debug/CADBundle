@@ -83,7 +83,7 @@ MSYS_NO_PATHCONV=1 "/d/Program Files/Microsoft Visual Studio/18/Enterprise/MSBui
 ## 7. 失败条件与循环上限
 
 - B0 构建连续 3 轮失败；`StartCreatingObject` 无法创建非公开对象；BezFont 不可用；表格编辑器无法完成；屏幕恒定超阈值；保存/重开丢字段；旧 DLO 冲突；无 Max 运行环境；U1–U10 被证明不可行。
-- 同一问题最多 3 轮；全任务累计最多 9 轮；当前累计 6 轮（第 2/3 步），第 4 步未消耗返工轮次。
+- 同一问题最多 3 轮；全任务累计最多 9 轮；当前累计 7 轮（第 2/3 步 6 轮 + 第 5 步方案退回 1 轮），剩余 2 轮。
 - 连续 2 轮无可验证进展立即停止，汇报阻塞点；不得用新子问题绕过计数器。
 
 ## 8. 人工验证清单（用户执行）
@@ -104,11 +104,11 @@ MSYS_NO_PATHCONV=1 "/d/Program Files/Microsoft Visual Studio/18/Enterprise/MSBui
 |---|---|---|---|---|
 | B-01 | `StartCreatingObject` 对非公开类 | 四按钮各创建 1 个；对象+1；末点退出 | B1/B3–B6 | 实施 |
 | B-02 | BezFont 中文/缺字 | 不存在字体/中文串；回退可见、不崩溃 | B4 | 实施 |
-| B-03 | 像素测量方法 | 固定 1280×720、透视+正交、1×/2×/4×、3 次；屏幕标尺/PIL；留原始像素 | B3/B5 | 项目经理定方法 |
+| B-03 | 像素测量方法 | 固定 1280×720、透视+正交、1×/2×/4×、3 次；屏幕标尺/PIL；留原始像素 | B3/B5 | 项目经理（方法）/实施（执行） |
 | B-04 | 50×50 性能 | 创建/编辑/保存重开 ≤2 s；交互重绘 ≤200 ms（初始目标） | B6 | 实施 |
 | B-05 | 保存/重开逐字段 | A10/T14–T16 字段清单；浮点 1e-4 | B7 | 实施 |
 | B-06 | 旧 DLO 恢复 | 移出→测试→恢复→SHA-256/大小一致 | B8 | 实施+用户 |
-| B-07 | 回滚命令 | 见 §10 PowerShell 模板；`git revert` 占位 | B8 | 项目经理 |
+| B-07 | 回滚命令 | §10 备份/安装/回滚三段；恢复后 Get-FileHash；B-07a 顺序修正 | B8 | 项目经理+实施 |
 | B-08 | DPI | T21 100/125/150/200%；不重叠/不截断 | B1/B8 | 实施 |
 | B-09 | 显示名/`NonLocalizedClassName` | 证据包记录两者；验收 3 同时检查 | B8 | 项目经理 |
 | B-10 | 分类切换/Max 退出 | T18 扩展；无残留/无崩溃 | B1 | 实施 |
@@ -122,8 +122,12 @@ MSYS_NO_PATHCONV=1 "/d/Program Files/Microsoft Visual Studio/18/Enterprise/MSBui
 | B-18 | A12 判据 | 连续线 `DrawLineProc`/`polyline`；`DrawLine/DrawRectangle` 白名单 | 返工 | 项目经理 |
 | B-19 | T6 条件 | 固定相机/视口/测量点/3 次/工具 | 返工 | 项目经理 |
 | B-20 | 长文本策略 | CADText ≤1024 字符；表格 ≤256；显示省略、存储完整 | B6 | 实施 |
+| B-21 | C-01 运行时点序 | T4/T7/T9/T10：1 次点击=point 0；3 次点击=point 0/1/2；最后一点 STOP；中止清理；若不同，停止并回报 | B1/B3–B6 | 实施+项目经理 |
+| B-22 | V1 阈值 | 用户在 ≤2 px 或 ≤5% 中选定；A6 前完成 | A6 前 | 用户 |
 
-## 10. 回滚命令模板（PowerShell，执行前确认）
+## 10. 回滚命令模板（PowerShell，分三段执行，执行前确认）
+
+### 10.1 备份并移出旧 DLO
 
 ```powershell
 $pluginDir = "D:\Program Files\3ds Max 2027\3ds Max 2027\plugins"
@@ -134,12 +138,29 @@ New-Item -ItemType Directory -Force -Path $backupDir | Out-Null
 Get-FileHash $old -Algorithm SHA256
 Copy-Item $old $backup -Force
 Move-Item $old (Join-Path $backupDir "CADDimension.moved.dlo") -Force
-# install new: Copy-Item .\build\x64\Release\plugins\CADBundle.dlo $pluginDir
-# rollback: Move-Item (Join-Path $pluginDir "CADBundle.dlo") $backupDir -Force
-# rollback: Copy-Item $backup $old -Force
+Get-FileHash $backup -Algorithm SHA256
+```
+
+### 10.2 安装新 DLO（取得用户确认后）
+
+```powershell
+$pluginDir = "D:\Program Files\3ds Max 2027\3ds Max 2027\plugins"
+Copy-Item .\build\x64\Release\plugins\CADBundle.dlo $pluginDir -Force
+```
+
+### 10.3 回滚（测试失败时）
+
+```powershell
+$pluginDir = "D:\Program Files\3ds Max 2027\3ds Max 2027\plugins"
+$old = Join-Path $pluginDir "CADDimension.dlo"
+$backupDir = "D:\PycharmProjects\CADBundle\backup\plugins"
+$backup = Join-Path $backupDir "CADDimension.dlo"
+Move-Item (Join-Path $pluginDir "CADBundle.dlo") $backupDir -Force
+Copy-Item $backup $old -Force
 Get-FileHash $old -Algorithm SHA256
 ```
 
+- 三段不可作为单段脚本直接执行；每段单独执行并核对输出；不删除旧文件；恢复后哈希应为 `92b62a52fa288deafc0405df6d1dda4dee1756ac784382359c52969adffb963a`、大小 158,720。
 - 合并后回滚优先 `git revert -m 1 <merge-SHA>`；用 `git log --merges -1 --format=%H` 查找合并提交；不得自行 `reset --hard`；不执行 `git push`。
 - 上述命令未执行；执行前必须再次取得用户确认。
 
