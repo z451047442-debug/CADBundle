@@ -47,6 +47,15 @@
 - V1 阈值：用户裁决记录为允许偏差 ≤ max(2 px, 5%)（小尺寸按 2 px、大尺寸按 5%）。
 - B8：2026-11-19 发布准备——全新 `Rebuild` 通过（15 个编译单元，无 warning/error），产物 164,864 B，SHA-256 `0191f6540cd4067f9eb604a05d9d25e6b792f61522488789784d518c9c740c1b`，7 个导出正确、x64、无 Qt 依赖；新增 `README.md`、`BUILD.md`、`CHANGELOG.md`（0.1.0 Unreleased）与 `docs/release/acceptance-checklist.md`（A1–A13 映射、证据模板、运行验证步骤、未验证清单）。旧 `CADDimension.dlo` 当前不存在于 plugins 目录（已核查）。运行时验证（第 7/11 步）仍待人工执行。
 
+## 第 7 步运行验证记录（自动部分，2026-11-19）
+
+- 安装：发布候选 `CADBundle.dlo`（SHA-256 `0191f6540cd4067f9eb604a05d9d25e6b792f61522488789784d518c9c740c1b`）已复制到 3ds Max 2027 `plugins`；旧 `CADDimension.dlo` 不存在，无需备份。
+- 通过（自动）：新 Max 实例加载 DLL 无崩溃（多次 `EXIT=0`）；`CADDimension`/`CADText`/`CADLeader`/`CADTable`/`CADAnnotatePanel` 名称均可被 MAXScript 解析；`utilityPanel.openUtility` 返回，面板打开标记已写入。
+- 预期内不可用：`createInstance` 无法创建 `IsPublic=FALSE` 的四个对象类（与 U3/C2 裁决一致）；T14/T15 保存重开无法程序化执行。
+- 待人工确认 B-23：首次探针在“面板打开后”超时（脚本含一次 `sleep`，未能区分 sleep 单位与 `closeUtility` 行为）；随后启动不再写入脚本日志，疑为强制终止后的场景恢复对话框阻塞，已停止继续启动测试实例。人工步骤：启动 Max（处理可能的恢复提示）→ 打开“CAD 注释”面板 → 用面板“关闭”按钮关闭 → 重开 Utility，确认无挂起、无残留创建模式。
+- 附带影响：3 个测试用 Max 实例被强制终止；原有 2 个 Max 实例未触碰。`CADBundle.dlo` 保留在 plugins 供人工验证；卸载删除该文件即可。
+- 轮次：本记录为运行验证发现/待确认项，不构成方案返工；累计技术轮次维持 7/9。
+
 ## 备注
 
 - 第 2 步两次退回均为“报告格式/完整性”问题，不涉及技术结论争议；专家结论未被项目经理或总裁改写。

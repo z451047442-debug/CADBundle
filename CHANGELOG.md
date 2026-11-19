@@ -24,7 +24,7 @@
 - 构建：Release x64 全新 Rebuild 通过，无 warning/error。
 - 发布候选：`build/x64/Release/plugins/CADBundle.dlo`，164,864 字节，SHA-256 `0191f6540cd4067f9eb604a05d9d25e6b792f61522488789784d518c9c740c1b`。
 - 导出：7 个必需导出全部正确；x64；无 Qt 依赖。
-- **运行时未验证**：DLL 加载、面板、四类创建、屏幕恒定、保存/重开（T14/T15）、损坏 chunk、DPI、旧插件共存等，详见 `docs/release/acceptance-checklist.md`。
+- **运行时部分验证（自动，2026-11-19）**：DLL 在 3ds Max 2027 加载无崩溃；四类对象与 Utility 类注册可解析；`utilityPanel.openUtility` 返回并成功打开面板。`IsPublic=FALSE` 类无法经 MAXScript 创建（预期，U3）。面板关闭/重开（B-23）与四类创建、屏幕恒定、保存/重开（T14/T15）、损坏 chunk、DPI、旧插件共存等仍待人工，详见 `docs/release/acceptance-checklist.md`。
 
 ### 过程提交（摘要）
 

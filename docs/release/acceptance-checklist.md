@@ -20,7 +20,7 @@
 | 编号 | 判据 | 方法/测试 | 结果 |
 |---|---|---|---|
 | A1 | 单 DLL、5 ClassDesc、7 导出 | 静态 + 第 8 步证据包 | 待归档 |
-| A2 | 可加载、Utility 列表出现“CAD 注释” | 安装后启动 Max | 未验证 |
+| A2 | 可加载、Utility 列表出现“CAD 注释” | 安装后启动 Max | 部分验证：DLL 加载、类注册、`openUtility` 返回；列表显示与关闭待人工（B-23） |
 | A3 | 面板 4 按钮、状态行、关闭清理 | T3/T4 | 未验证 |
 | A4 | 对象不在创建下拉暴露（IsPublic=FALSE） | 创建面板逐项检查 | 未验证 |
 | A5 | 四类对象可由面板创建 | T4/T7/T9/T10（含 B-21 点序） | 未验证 |
@@ -96,3 +96,19 @@ object_type,object_name,field,value_before,value_after,tolerance,pass
 1. 更新版本号与 VERSIONINFO；
 2. 更新 `CHANGELOG.md`（去除 Unreleased，记录验证证据路径与产物 SHA-256）；
 3. 经合并流程进入主干。
+
+## 7. 自动运行验证记录（2026-11-19）
+
+- 安装：发布候选 `CADBundle.dlo`（SHA-256 `0191f654…740c1b`）复制到 3ds Max 2027 `plugins`；旧 `CADDimension.dlo` 不存在，无需备份。
+- 已通过（自动）：
+  - 新 Max 实例加载 DLL 无崩溃（多次 `EXIT=0`）；
+  - `CADDimension` / `CADText` / `CADLeader` / `CADTable` / `CADAnnotatePanel` 名称均可被 MAXScript 解析（ClassDesc 已注册）；
+  - `utilityPanel.openUtility` 返回，面板打开标记写入成功。
+- 预期内不可用：`createInstance` 无法创建 `IsPublic=FALSE` 的四类对象（与 U3/C2 裁决一致）；因此 T14/T15 保存重开无法程序化执行。
+- 待人工确认（B-23）：
+  1. 启动 Max（如出现场景恢复提示，按提示处理）；
+  2. 打开 Utilities → “CAD 注释”；
+  3. 用面板“关闭”按钮关闭，再次打开，确认无挂起、无残留创建模式；
+  4. 从面板分别创建四类对象，按 §4 执行 T14/T15。
+- 环境说明：自动验证强制终止过 3 个测试用 Max 实例（原有实例未触碰）；若后续启动出现恢复提示属预期现象。
+
