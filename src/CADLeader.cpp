@@ -3,6 +3,7 @@
 #include "CADParamBlockHost.h"
 
 #include <GetCOREInterface.h>
+#include <hold.h>
 #include <iparamm2.h>
 #include <maxapi.h>
 #include <mouseman.h>
@@ -84,7 +85,6 @@ static ParamBlockDesc2 gLeaderParamBlock(
 
     leader_note, _T("note"), TYPE_STRING, 0, IDS_LEADER_NOTE,
         p_default, _T("注释"),
-        p_ui, TYPE_EDITBOX, IDC_LEAD_NOTE,
         p_end,
 
     leader_arrow, _T("arrowSize"), TYPE_FLOAT, 0, IDS_LEADER_ARROW,
@@ -262,19 +262,66 @@ CreateMouseCallBack* CADLeader::GetCreateMouseCallBack()
 class CADLeaderThemeProc : public ParamMap2UserDlgProc
 {
 public:
-    INT_PTR DlgProc(TimeValue, IParamMap2*, HWND, UINT msg, WPARAM wParam,
-                    LPARAM) override
+    explicit CADLeaderThemeProc(CADLeader* obj) : mObj(obj) {}
+
+    INT_PTR DlgProc(TimeValue t, IParamMap2*, HWND hWnd, UINT msg,
+                    WPARAM wParam, LPARAM) override
     {
+        if (msg == WM_INITDIALOG)
+        {
+            PopulateNote(hWnd);
+        }
+        else if (msg == WM_COMMAND && HIWORD(wParam) == EN_KILLFOCUS &&
+                 LOWORD(wParam) == IDC_LEAD_NOTE)
+        {
+            ApplyNote(hWnd, t);
+            return TRUE;
+        }
         return CADApplyThemeColors(msg, wParam);
     }
 
     void DeleteThis() override { delete this; }
+
+private:
+    void PopulateNote(HWND hWnd)
+    {
+        IParamBlock2* pblock = mObj ? mObj->GetParamBlock(0) : nullptr;
+        if (!pblock || !hWnd)
+        {
+            return;
+        }
+        Interval valid;
+        const MCHAR* note = pblock->GetStr(leader_note, 0, valid);
+        SetDlgItemText(hWnd, IDC_LEAD_NOTE, note ? note : _T(""));
+    }
+
+    void ApplyNote(HWND hWnd, TimeValue t)
+    {
+        IParamBlock2* pblock = mObj ? mObj->GetParamBlock(0) : nullptr;
+        if (!pblock)
+        {
+            return;
+        }
+        TCHAR buffer[1025] = {};
+        GetDlgItemText(hWnd, IDC_LEAD_NOTE, buffer, _countof(buffer));
+        theHold.Begin();
+        pblock->SetValue(leader_note, t, buffer);
+        theHold.Accept(GetString(IDS_LEADER_NOTE));
+        mObj->NotifyDependents(FOREVER, PART_ALL, REFMSG_CHANGE);
+        Interface* ip = GetCOREInterface();
+        if (ip)
+        {
+            ip->RedrawViews(t, REDRAW_INTERACTIVE);
+        }
+    }
+
+    CADLeader* mObj = nullptr;
 };
 
 void CADLeader::BeginEditParams(IObjParam* ip, ULONG flags, Animatable* prev)
 {
     CADBeginAutoUI(GetCADLeaderDesc(), ip, this, flags, prev);
-    gLeaderParamBlock.SetUserDlgProc(new CADLeaderThemeProc());
+    gLeaderParamBlock.SetUserDlgProc(new CADLeaderThemeProc(this));
 }
 
 void CADLeader::EndEditParams(IObjParam* ip, ULONG flags, Animatable* next)

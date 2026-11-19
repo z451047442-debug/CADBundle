@@ -79,6 +79,7 @@
 - 修复：新增 `CADApplyThemeColors`，使用 `IColorManager::CustSysColor/CustSysColorBrush`（`COLOR_BTNFACE/BTNTEXT/WINDOW/WINDOWTEXT`）；四类参数对话框在 `BeginEditParams` 注册主题 `ParamMap2UserDlgProc`；表格编辑器同步处理颜色消息并设置 ListView 背景/文字色。
 - 验证：Release x64 构建通过；批处理冒烟 29 项全 PASS；最新 DLO 已安装（SHA-256 `d7ab5d080d61866f065f6e50ead3f44d508b2ff7902a4b51cff05e980c283ede`）。GUI 主题效果待用户复查。
 - 追加（同日）：用户反馈“注释、文字不能编辑”与类名标题条不协调。修复：`IDC_TEXT_STRING`/`IDC_TEXT_FONT`/`IDC_LEAD_NOTE` 由 `CustEdit` 改为标准 `EDITTEXT`（`TYPE_EDITBOX` 的正确控件类）；四个参数对话框 `CAPTION` 置空，尝试消除 Max 绘制的浅蓝色类名标题条。构建与冒烟通过；新 DLO SHA-256 `2caf1f98cbea2c198c6c30ddb3aca3e9b14c5be5730eec06ef92f522ade5995a`，待用户重启 Max 复查。
+- 追加 2（同日）：用户反馈标准 EDIT 绑定 `TYPE_EDITBOX` 后仍“可点击但打字无反应”。按 SDK 契约 `TYPE_EDITBOX` 必须为 `CustEdit`，而 CustEdit 路径在该对话框仍未生效。改为**不经自动 UI 绑定**：`text_string`/`leader_note` 移除 `p_ui`，控件使用标准 `EDITTEXT`，在自定义 `ParamMap2UserDlgProc` 中 `WM_INITDIALOG` 填入、`EN_KILLFOCUS` 用 `theHold` 写回并刷新；字体改为 `COMBOBOX` + `BezFontManager::EnumerateFonts`。构建与冒烟通过；DLO SHA-256 `24e399704daf3b964386af98bb170248d7b5703ea820db2f5f71af77d8eea363`。
 
 ## 备注
 

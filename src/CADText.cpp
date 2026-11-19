@@ -67,7 +67,6 @@ static ParamBlockDesc2 gTextParamBlock(
 
     text_string, _T("textString"), TYPE_STRING, 0, IDS_TEXT_STRING,
         p_default, _T("文字"),
-        p_ui, TYPE_EDITBOX, IDC_TEXT_STRING,
         p_end,
 
     text_font_size, _T("fontSize"), TYPE_FLOAT, 0, IDS_TEXT_SIZE,
@@ -228,7 +227,6 @@ public:
 private:
     std::vector<MSTR>& mNames;
 };
-
 class CADTextThemeProc : public ParamMap2UserDlgProc
 {
 public:
@@ -239,6 +237,7 @@ public:
     {
         if (msg == WM_INITDIALOG)
         {
+            PopulateText(hWnd);
             PopulateFonts(hWnd);
         }
         else if (msg == WM_COMMAND && HIWORD(wParam) == CBN_SELCHANGE &&
@@ -247,12 +246,46 @@ public:
             ApplySelectedFont(hWnd, t);
             return TRUE;
         }
+        else if (msg == WM_COMMAND && HIWORD(wParam) == EN_KILLFOCUS &&
+                 LOWORD(wParam) == IDC_TEXT_STRING)
+        {
+            ApplyText(hWnd, t);
+            return TRUE;
+        }
         return CADApplyThemeColors(msg, wParam);
     }
 
     void DeleteThis() override { delete this; }
 
 private:
+    void PopulateText(HWND hWnd)
+    {
+        IParamBlock2* pblock = mObj ? mObj->GetParamBlock(0) : nullptr;
+        if (!pblock || !hWnd)
+        {
+            return;
+        }
+        Interval valid;
+        const MCHAR* value = pblock->GetStr(text_string, 0, valid);
+        SetDlgItemText(hWnd, IDC_TEXT_STRING, value ? value : _T(""));
+    }
+
+    void ApplyText(HWND hWnd, TimeValue t)
+    {
+        IParamBlock2* pblock = mObj ? mObj->GetParamBlock(0) : nullptr;
+        if (!pblock)
+        {
+            return;
+        }
+        TCHAR buffer[1025] = {};
+        GetDlgItemText(hWnd, IDC_TEXT_STRING, buffer, _countof(buffer));
+        theHold.Begin();
+        pblock->SetValue(text_string, t, buffer);
+        theHold.Accept(GetString(IDS_TEXT_STRING));
+        mObj->NotifyDependents(FOREVER, PART_ALL, REFMSG_CHANGE);
+        Interface* ip = GetCOREInterface();
+        if (ip) ip->RedrawViews(t, REDRAW_INTERACTIVE);
+    }
     void PopulateFonts(HWND hWnd)
     {
         if (!mObj || !hWnd)
@@ -317,10 +350,7 @@ private:
         theHold.Accept(GetString(IDS_TEXT_FONT));
         mObj->NotifyDependents(FOREVER, PART_ALL, REFMSG_CHANGE);
         Interface* ip = GetCOREInterface();
-        if (ip)
-        {
-            ip->RedrawViews(t, REDRAW_INTERACTIVE);
-        }
+        if (ip) ip->RedrawViews(t, REDRAW_INTERACTIVE);
     }
 
     CADText* mObj = nullptr;
