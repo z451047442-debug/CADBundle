@@ -32,7 +32,7 @@ constexpr DWORD kLeaderChunkVersionValue = 1;
 class CADLeaderClassDesc : public ClassDesc2
 {
 public:
-    int IsPublic() override { return FALSE; }
+    int IsPublic() override { return TRUE; }
     void* Create(BOOL) override { return new CADLeader(); }
     const TCHAR* ClassName() override { return GetString(IDS_LEADER_CLASS); }
     const TCHAR* NonLocalizedClassName() override { return _T("CADLeader"); }

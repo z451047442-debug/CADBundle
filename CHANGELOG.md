@@ -6,7 +6,7 @@
 
 ### Added
 
-- **Utility 面板** `CADAnnotatePanel`：Win32 非模态面板，4 个分类按钮（标注/文字/引线/表格）、状态行、关闭清理；类显示名 `CADAnnotatePanel`。
+- **创建入口**（U11）：4 个对象类 `IsPublic=TRUE`，创建面板 **CAD Tools** 与 MAXScript 构造函数均可创建；Utility 面板已移除。
 - **CADDimension**：三点线性标注；ParamBlock2（P0/P1/P2、showXYZ、箭头、文字高度、延伸线、RGB 颜色、精度）；延伸线、闭合三角箭头、BezFont 距离文本、可选坐标标签；退化几何点标记。
 - **CADText**：单击放置；ParamBlock2（位置、内容、字号、字体、RGB 颜色）；BezFont 字形轮廓与 billboard；空心标记可选中。
 - **CADLeader**：三点引线；ParamBlock2（起点/拐点/文本位置、注释、箭头、文字高度、RGB 颜色）；折线 + 闭合三角箭头 + 注释文本。
@@ -16,6 +16,9 @@
 
 ### Changed
 
+- **R1 对齐参考项目（U11–U13）**：`LibNumberClasses` 5→4；四类改为公开；移除 `CADAnnotatePanel` 源文件与工程引用；建立 `3dsmaxbatch + plugin.ini` 独立冒烟验证。
+- **B-24 修复**：外部写入 `cellTexts` 镜像时主动同步 `mCells`（`SyncCellsFromMirror`），修复保存后单元格内容丢失。
+
 - **B7 持久化硬化**：四类对象改为在 `Load()` 中仅解析校验 chunk，注册 `ILoad::RegisterPostLoadCallback`（优先级 5），在全部引用就绪后回填 pblock 镜像，使 chunk 权威与系统加载顺序无关。
 - 表格单元格文本截断阈值改用屏幕缩放后的宽度。
 
@@ -24,7 +27,7 @@
 - 构建：Release x64 全新 Rebuild 通过，无 warning/error。
 - 发布候选：`build/x64/Release/plugins/CADBundle.dlo`，164,864 字节，SHA-256 `0191f6540cd4067f9eb604a05d9d25e6b792f61522488789784d518c9c740c1b`。
 - 导出：7 个必需导出全部正确；x64；无 Qt 依赖。
-- **运行时部分验证（自动，2026-11-19）**：DLL 在 3ds Max 2027 加载无崩溃；四类对象与 Utility 类注册可解析；`utilityPanel.openUtility` 返回并成功打开面板。`IsPublic=FALSE` 类无法经 MAXScript 创建（预期，U3）。面板关闭/重开（B-23）与四类创建、屏幕恒定、保存/重开（T14/T15）、损坏 chunk、DPI、旧插件共存等仍待人工，详见 `docs/release/acceptance-checklist.md`。
+- **批处理验证（R1，2026-11-19）**：`3dsmaxbatch + plugin.ini` 独立加载；四类构造成功；29 项检查全部 PASS（含四类参数与表格 2×3 六个唯一字符串保存→Reset→重开逐格一致）。
 
 ### 过程提交（摘要）
 

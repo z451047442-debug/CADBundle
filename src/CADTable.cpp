@@ -35,7 +35,7 @@ constexpr int kMaxRows = 50;
 class CADTableClassDesc : public ClassDesc2
 {
 public:
-    int IsPublic() override { return FALSE; }
+    int IsPublic() override { return TRUE; }
     void* Create(BOOL) override { return new CADTable(); }
     const TCHAR* ClassName() override { return GetString(IDS_TABLE_CLASS); }
     const TCHAR* NonLocalizedClassName() override { return _T("CADTable"); }
@@ -131,6 +131,7 @@ RefResult CADTable::NotifyRefChanged(const Interval&, RefTargetHandle hTarget,
     if (hTarget == mPBlock && message == REFMSG_CHANGE)
     {
         EnsureDimensions(0);
+        SyncCellsFromMirror(0);
     }
     return CADNotifyPBlockChange(this, mPBlock, hTarget, partID, message,
                                  propagate, GetCOREInterface(), nullptr);
@@ -210,6 +211,32 @@ void CADTable::EnsureDimensions(TimeValue t)
     mCols = cols;
     mCells.swap(cells);
     WriteCellMirror();
+}
+
+void CADTable::SyncCellsFromMirror(TimeValue t)
+{
+    if (!mPBlock || mSyncing)
+    {
+        return;
+    }
+
+    const size_t needed = static_cast<size_t>(mRows) * mCols;
+    if (needed == 0)
+    {
+        return;
+    }
+
+    std::vector<MSTR> cells(needed);
+    for (size_t i = 0; i < needed; ++i)
+    {
+        const MCHAR* value =
+            mPBlock->GetStr(table_cell_texts, t, static_cast<int>(i));
+        if (value)
+        {
+            cells[i] = value;
+        }
+    }
+    mCells.swap(cells);
 }
 
 bool CADTable::GetParams(TimeValue t, Point3& insertPos, int& rows, int& cols,

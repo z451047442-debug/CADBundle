@@ -20,15 +20,15 @@
 | 编号 | 判据 | 方法/测试 | 结果 |
 |---|---|---|---|
 | A1 | 单 DLL、5 ClassDesc、7 导出 | 静态 + 第 8 步证据包 | 待归档 |
-| A2 | 可加载、Utility 列表出现“CAD 注释” | 安装后启动 Max | 部分验证：DLL 加载、类注册、`openUtility` 返回；列表显示与关闭待人工（B-23） |
-| A3 | 面板 4 按钮、状态行、关闭清理 | T3/T4 | 未验证 |
-| A4 | 对象不在创建下拉暴露（IsPublic=FALSE） | 创建面板逐项检查 | 未验证 |
-| A5 | 四类对象可由面板创建 | T4/T7/T9/T10（含 B-21 点序） | 未验证 |
+| A2 | 可加载、四类在创建面板可见 | 3dsmaxbatch + plugin.ini；GUI 创建面板 | 批处理通过：四类构造 + 保存重开；GUI 面板显示待人工 |
+| A3 | ~~Utility 面板~~（U11 已移除） | —— | 不适用 |
+| A4 | 四类公开可创建（U11 放宽） | 静态 + 批处理构造 | 通过（静态/批处理）；创建面板显示待人工 |
+| A5 | 四类对象可创建 | MAXScript 构造（已通过）；面板/鼠标创建 T4/T7/T9/T10（待人工） | 部分验证 |
 | A6 | 屏幕恒定（箭头/文字/延伸线/表格） | T6，1×/2×/4×，3 次，V1 判据 | 未验证 |
 | A7 | 文字：字体/字号/颜色生效，回退可见 | T7/T8 | 未验证 |
 | A8 | 引线：折线/箭头/注释，坐标 1e-4 一致 | T9 | 未验证 |
 | A9 | 表格：网格、编辑器、行列迁移 | T10–T13 | 未验证 |
-| A10 | 保存→Reset→重开逐字段一致；2×3 实验 | T14/T15/T16 | 未验证 |
+| A10 | 保存→Reset→重开逐字段一致；2×3 实验 | T14/T15/T16 | 部分验证：四类参数与 2×3 cellTexts 批处理通过；损坏 chunk T16 待人工 |
 | A11 | 屏幕恒定公式为完整式 | 静态（与 A12 交叉） | 静态通过 |
 | A12 | 连续线经 DrawLineProc/polyline；无 DrawLine/DrawRectangle | 静态扫描 | 静态通过（0 处） |
 | A13 | 完整性：无 TODO/占位、资源 ID 一致、行数约束 | 静态 | 静态通过 |
@@ -97,7 +97,18 @@ object_type,object_name,field,value_before,value_after,tolerance,pass
 2. 更新 `CHANGELOG.md`（去除 Unreleased，记录验证证据路径与产物 SHA-256）；
 3. 经合并流程进入主干。
 
-## 7. 自动运行验证记录（2026-11-19）
+## 7. R1 批处理验证（2026-11-19）
+
+- 命令：`3dsmaxbatch.exe build/verify/smoke_r1.ms -p build/verify/plugin.ini -dm on -log build/verify/smoke_r1.log -v 2`
+- 结果：`BATCH_EXIT=0`，29 项检查全部 PASS（`fails=0`）。
+- 覆盖：四类构造；Dimension P0/P1/P2/箭头/文字/延伸线/精度；Text 位置/内容/字号/字体；Leader 三点/注释/箭头/文字；Table 行列/插入点/单元格宽高/**2×3 六格文本逐格往返**。
+- 修复：B-24（`SyncCellsFromMirror`）。
+- 不覆盖：鼠标创建与点序（B-21）、修改面板 UI、显示/命中、屏幕恒定像素（R2 后）、损坏 chunk、DPI、旧插件共存。
+
+
+## 8. 自动运行验证记录（历史，2026-11-19）
+
+> 以下为 Utility 面板移除（U11）之前的记录，保留供追溯；其面板相关步骤已不适用。
 
 - 安装：发布候选 `CADBundle.dlo`（SHA-256 `0191f654…740c1b`）复制到 3ds Max 2027 `plugins`；旧 `CADDimension.dlo` 不存在，无需备份。
 - 已通过（自动）：

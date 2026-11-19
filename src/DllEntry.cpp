@@ -1,6 +1,5 @@
 #include "CADBundle.h"
 
-extern ClassDesc2* GetCADAnnotatePanelDesc();
 extern ClassDesc2* GetCADDimensionDesc();
 extern ClassDesc2* GetCADTextDesc();
 extern ClassDesc2* GetCADLeaderDesc();
@@ -26,18 +25,17 @@ extern "C" const TCHAR* LibDescription()
 
 extern "C" int LibNumberClasses()
 {
-    return 5;
+    return 4;
 }
 
 extern "C" ClassDesc* LibClassDesc(int i)
 {
     switch (i)
     {
-    case 0: return GetCADAnnotatePanelDesc();
-    case 1: return GetCADDimensionDesc();
-    case 2: return GetCADTextDesc();
-    case 3: return GetCADLeaderDesc();
-    case 4: return GetCADTableDesc();
+    case 0: return GetCADDimensionDesc();
+    case 1: return GetCADTextDesc();
+    case 2: return GetCADLeaderDesc();
+    case 3: return GetCADTableDesc();
     default: return nullptr;
     }
 }

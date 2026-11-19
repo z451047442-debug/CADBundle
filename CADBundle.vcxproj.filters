@@ -16,7 +16,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\DllEntry.cpp"><Filter>Source Files</Filter></ClCompile>
-    <ClCompile Include="src\CADAnnotatePanel.cpp"><Filter>Source Files</Filter></ClCompile>
     <ClCompile Include="src\CADDimension.cpp"><Filter>Source Files</Filter></ClCompile>
     <ClCompile Include="src\CADDimensionRender.cpp"><Filter>Source Files</Filter></ClCompile>
     <ClCompile Include="src\CADText.cpp"><Filter>Source Files</Filter></ClCompile>
@@ -34,7 +33,6 @@
   <ItemGroup>
     <ClInclude Include="src\CADBundle.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="src\CADBundleIDs.h"><Filter>Header Files</Filter></ClInclude>
-    <ClInclude Include="src\CADAnnotatePanel.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="src\CADDimension.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="src\CADText.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="src\CADLeader.h"><Filter>Header Files</Filter></ClInclude>

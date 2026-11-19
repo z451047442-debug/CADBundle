@@ -75,6 +75,7 @@ private:
                    float& cellWidth, float& cellHeight, Color& lineColor,
                    Color& textColor);
     void EnsureDimensions(TimeValue t);
+    void SyncCellsFromMirror(TimeValue t);
     void WriteCellMirror();
 
     IParamBlock2* mPBlock = nullptr;

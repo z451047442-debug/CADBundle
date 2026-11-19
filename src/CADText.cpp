@@ -30,7 +30,7 @@ constexpr float kMinTextHeight = 1.0f;
 class CADTextClassDesc : public ClassDesc2
 {
 public:
-    int IsPublic() override { return FALSE; }
+    int IsPublic() override { return TRUE; }
     void* Create(BOOL) override { return new CADText(); }
     const TCHAR* ClassName() override { return GetString(IDS_TEXT_CLASS); }
     const TCHAR* NonLocalizedClassName() override { return _T("CADText"); }
