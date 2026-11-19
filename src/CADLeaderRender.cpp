@@ -1,68 +1,95 @@
 #include "CADLeader.h"
 #include "CADAnnotationCommon.h"
-#include "CADBezFontText.h"
 
 #include <gfx.h>
 #include <maxapi.h>
 #include <object.h>
 #include <tchar.h>
 
+#include <cmath>
+
 namespace
 {
-bool LeaderDirection(const Point3& start, const Point3& elbow,
-                     const Point3& textPos, Point3& direction)
+constexpr int kMaxHitSegments = 32;
+
+int ClampInt(int value, int low, int high)
 {
-    return CADNormalizeSafe(elbow - start, direction) ||
-           CADNormalizeSafe(textPos - start, direction);
+    return value < low ? low : (value > high ? high : value);
 }
 
-void DrawLeader(GraphicsWindow* gw, const Point3& start, const Point3& elbow,
-                const Point3& textPos, float screenScale, float arrowSize,
-                const Point3& color)
+bool ProjectPoint(GraphicsWindow* gw, const Matrix3& objectTM,
+                  const Point3& local, IPoint2& screen)
 {
-    const Point3 polyline[3] = { start, elbow, textPos };
-    CADDrawPolyline(gw, polyline, 3, color);
-
-    Point3 direction;
-    if (!LeaderDirection(start, elbow, textPos, direction))
-    {
-        return;
-    }
-
-    const float arrowLength = arrowSize * screenScale;
-    if (arrowLength <= 0.0f)
-    {
-        return;
-    }
-
-    Point3 normal;
-    if (!CADNormalizeSafe(direction.CrossProd(Point3(0.0f, 0.0f, 1.0f)), normal) &&
-        !CADNormalizeSafe(direction.CrossProd(Point3(1.0f, 0.0f, 0.0f)), normal))
-    {
-        return;
-    }
-
-    CADDrawArrowHead(gw, start, direction, arrowLength,
-                     arrowLength * 0.35f, normal, color);
+    return CADWorldToScreen(gw, local * objectTM, screen);
 }
 
-void DrawTextHitBox(GraphicsWindow* gw, const Point3& position,
-                    const Point3& direction, float width, float height,
-                    const Point3& color)
+void AddSegment(const IPoint2& a, const IPoint2& b, IPoint2* segA, IPoint2* segB,
+                int& count, int maxSegments)
 {
-    Point3 right;
-    if (!CADNormalizeSafe(direction, right))
+    if (count >= maxSegments)
     {
-        right = Point3(1.0f, 0.0f, 0.0f);
+        return;
     }
-    const Point3 up(0.0f, 1.0f, 0.0f);
-    const Point3 corners[4] = {
-        position,
-        position + right * width,
-        position + up * height,
-        position + right * width + up * height,
-    };
-    CADDrawClosedPolyline(gw, corners, 4, color);
+    segA[count] = a;
+    segB[count] = b;
+    ++count;
+}
+
+void AppendArrowOutline(const IPoint2& tip, const IPoint2& toward,
+                        int lengthPx, int widthPx, IPoint2* segA, IPoint2* segB,
+                        int& count, int maxSegments)
+{
+    if (lengthPx <= 0 || widthPx <= 0)
+    {
+        return;
+    }
+
+    float dx = static_cast<float>(toward.x - tip.x);
+    float dy = static_cast<float>(toward.y - tip.y);
+    const float length = std::sqrt(dx * dx + dy * dy);
+    if (length <= 1.0e-3f)
+    {
+        return;
+    }
+    dx /= length;
+    dy /= length;
+
+    const float baseX = tip.x + dx * lengthPx;
+    const float baseY = tip.y + dy * lengthPx;
+    const float halfW = widthPx * 0.5f;
+    const float px = -dy * halfW;
+    const float py = dx * halfW;
+
+    const IPoint2 b0(static_cast<int>(baseX + px + 0.5f),
+                     static_cast<int>(baseY + py + 0.5f));
+    const IPoint2 b1(static_cast<int>(baseX - px + 0.5f),
+                     static_cast<int>(baseY - py + 0.5f));
+    AddSegment(tip, b0, segA, segB, count, maxSegments);
+    AddSegment(b0, b1, segA, segB, count, maxSegments);
+    AddSegment(b1, tip, segA, segB, count, maxSegments);
+}
+
+int NoteWidthPixels(const MSTR& note, float textHeight)
+{
+    return ClampInt(static_cast<int>(note.Length() * 0.6f * textHeight + 0.5f),
+                    4, 4000);
+}
+
+void AppendTextBox(const IPoint2& anchor, int widthPx, int heightPx,
+                   IPoint2* segA, IPoint2* segB, int& count, int maxSegments)
+{
+    if (widthPx <= 0 || heightPx <= 0)
+    {
+        return;
+    }
+    const IPoint2 c0(anchor.x, anchor.y - heightPx);
+    const IPoint2 c1(anchor.x + widthPx, anchor.y - heightPx);
+    const IPoint2 c2(anchor.x + widthPx, anchor.y);
+    const IPoint2 c3(anchor.x, anchor.y);
+    AddSegment(c0, c1, segA, segB, count, maxSegments);
+    AddSegment(c1, c2, segA, segB, count, maxSegments);
+    AddSegment(c2, c3, segA, segB, count, maxSegments);
+    AddSegment(c3, c0, segA, segB, count, maxSegments);
 }
 }
 
@@ -152,16 +179,30 @@ int CADLeader::Display(TimeValue t, INode* inode, ViewExp* vpt, int flags)
     }
 
     const Matrix3 objectTM = inode->GetObjectTM(t);
-    gw->setTransform(objectTM);
-    const float screenScale = CADScreenScale(vpt, objectTM);
     const Point3 line(lineColor.r, lineColor.g, lineColor.b);
     const Point3 text(textColor.r, textColor.g, textColor.b);
-    DrawLeader(gw, start, elbow, textPos, screenScale, arrowSize, line);
+
+    GWScreenGuard screenGuard(gw);
+
+    IPoint2 ps;
+    IPoint2 pe;
+    IPoint2 pt;
+    if (!ProjectPoint(gw, objectTM, start, ps) ||
+        !ProjectPoint(gw, objectTM, elbow, pe) ||
+        !ProjectPoint(gw, objectTM, textPos, pt))
+    {
+        return 0;
+    }
+
+    CADDrawScreenSegment(gw, ps, pe, line);
+    CADDrawScreenSegment(gw, pe, pt, line);
+
+    const int arrowPx = ClampInt(static_cast<int>(arrowSize + 0.5f), 2, 400);
+    CADDrawScreenArrow(gw, ps, pe, arrowPx, ClampInt(arrowPx / 3, 1, 200), line);
 
     if (note.Length() > 0 && textHeight > 0.0f)
     {
-        CADDrawBezFontText(gw, vpt, objectTM, textPos, note.data(),
-                           textHeight * screenScale, text, mFontCache);
+        CADDrawScreenText(gw, pt, note.data(), textHeight, text);
     }
     return 0;
 }
@@ -195,35 +236,38 @@ int CADLeader::HitTest(TimeValue t, INode* inode, int type, int crossing,
         return 0;
     }
 
-    GWRndLimitsGuard limits(gw);
-    const DWORD savedLimits = gw->getRndLimits();
-    gw->setRndLimits((savedLimits | GW_PICK) & ~GW_ILLUM);
-
     HitRegion hitRegion;
     MakeHitRegion(hitRegion, type, crossing, 4, p);
-    gw->setHitRegion(&hitRegion);
-    gw->clearHitCode();
 
     const Matrix3 objectTM = inode->GetObjectTM(t);
-    gw->setTransform(objectTM);
-    const float screenScale = CADScreenScale(vpt, objectTM);
-    const Point3 line(lineColor.r, lineColor.g, lineColor.b);
-    const Point3 text(textColor.r, textColor.g, textColor.b);
-    DrawLeader(gw, start, elbow, textPos, screenScale, arrowSize, line);
+    GWScreenGuard screenGuard(gw);
+
+    IPoint2 ps;
+    IPoint2 pe;
+    IPoint2 pt;
+    if (!ProjectPoint(gw, objectTM, start, ps) ||
+        !ProjectPoint(gw, objectTM, elbow, pe) ||
+        !ProjectPoint(gw, objectTM, textPos, pt))
+    {
+        return 0;
+    }
+
+    IPoint2 segA[kMaxHitSegments] = {};
+    IPoint2 segB[kMaxHitSegments] = {};
+    int segmentCount = 0;
+    AddSegment(ps, pe, segA, segB, segmentCount, kMaxHitSegments);
+    AddSegment(pe, pt, segA, segB, segmentCount, kMaxHitSegments);
+
+    const int arrowPx = ClampInt(static_cast<int>(arrowSize + 0.5f), 2, 400);
+    AppendArrowOutline(ps, pe, arrowPx, ClampInt(arrowPx / 3, 1, 200), segA,
+                       segB, segmentCount, kMaxHitSegments);
 
     if (note.Length() > 0 && textHeight > 0.0f)
     {
-        if (!mFontCache.IsReady())
-        {
-            mFontCache.SetFont(MSTR(_T("")));
-        }
-        Point3 direction;
-        LeaderDirection(start, elbow, textPos, direction);
-        const float width = mFontCache.TextWidth(note.data()) *
-                            (textHeight * screenScale) / 1000.0f;
-        DrawTextHitBox(gw, textPos, direction, width,
-                       textHeight * screenScale, text);
+        AppendTextBox(pt, NoteWidthPixels(note, textHeight),
+                      static_cast<int>(textHeight + 0.5f), segA, segB,
+                      segmentCount, kMaxHitSegments);
     }
 
-    return gw->checkHitCode();
+    return CADHitScreenSegments(hitRegion, segA, segB, segmentCount) ? 1 : 0;
 }

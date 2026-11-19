@@ -12,6 +12,7 @@
 namespace
 {
 constexpr int kMaxTextCharacters = 1024;
+constexpr int kMaxHitSegments = 16;
 
 MSTR SanitizeText(const MSTR& source)
 {
@@ -34,32 +35,25 @@ MSTR SanitizeText(const MSTR& source)
     return MSTR(buffer);
 }
 
-void DrawTextMarker(GraphicsWindow* gw, const Point3& point, float screenScale,
-                    const Point3& color)
+void DrawScreenMarker(GraphicsWindow* gw, const IPoint2& p, int radius,
+                      const Point3& color)
 {
-    const float offset = screenScale > 0.0f ? screenScale * 2.0f : 2.0f;
-    const Point3 horizontal[2] = {
-        point + Point3(-offset, 0.0f, 0.0f),
-        point + Point3(offset, 0.0f, 0.0f),
-    };
-    const Point3 vertical[2] = {
-        point + Point3(0.0f, -offset, 0.0f),
-        point + Point3(0.0f, offset, 0.0f),
-    };
-    CADDrawPolyline(gw, horizontal, 2, color);
-    CADDrawPolyline(gw, vertical, 2, color);
+    CADDrawScreenSegment(gw, IPoint2(p.x - radius, p.y),
+                         IPoint2(p.x + radius, p.y), color);
+    CADDrawScreenSegment(gw, IPoint2(p.x, p.y - radius),
+                         IPoint2(p.x, p.y + radius), color);
 }
 
-void DrawTextBox(GraphicsWindow* gw, const Point3& position, float width,
-                 float height, const Point3& color)
+void AddSegment(const IPoint2& a, const IPoint2& b, IPoint2* segA, IPoint2* segB,
+                int& count, int maxSegments)
 {
-    const Point3 corners[4] = {
-        position,
-        position + Point3(width, 0.0f, 0.0f),
-        position + Point3(width, height, 0.0f),
-        position + Point3(0.0f, height, 0.0f),
-    };
-    CADDrawClosedPolyline(gw, corners, 4, color);
+    if (count >= maxSegments)
+    {
+        return;
+    }
+    segA[count] = a;
+    segB[count] = b;
+    ++count;
 }
 }
 
@@ -146,7 +140,6 @@ int CADText::Display(TimeValue t, INode* inode, ViewExp* vpt, int flags)
 
     const Matrix3 objectTM = inode->GetObjectTM(t);
     const float screenScale = CADScreenScale(vpt, objectTM);
-    gw->setTransform(objectTM);
     const Point3 textColor(color.r, color.g, color.b);
     const float height = fontSize * screenScale;
     mFontCache.SetFont(fontName);
@@ -154,7 +147,12 @@ int CADText::Display(TimeValue t, INode* inode, ViewExp* vpt, int flags)
     const MSTR displayText = SanitizeText(text);
     if (displayText.Length() == 0)
     {
-        DrawTextMarker(gw, position, screenScale, textColor);
+        GWScreenGuard screenGuard(gw);
+        IPoint2 p;
+        if (CADWorldToScreen(gw, position * objectTM, p))
+        {
+            DrawScreenMarker(gw, p, 3, textColor);
+        }
         return 0;
     }
 
@@ -188,34 +186,83 @@ int CADText::HitTest(TimeValue t, INode* inode, int type, int crossing,
         return 0;
     }
 
-    GWRndLimitsGuard limits(gw);
-    const DWORD savedLimits = gw->getRndLimits();
-    gw->setRndLimits((savedLimits | GW_PICK) & ~GW_ILLUM);
-
     HitRegion hitRegion;
     MakeHitRegion(hitRegion, type, crossing, 4, p);
-    gw->setHitRegion(&hitRegion);
-    gw->clearHitCode();
 
     const Matrix3 objectTM = inode->GetObjectTM(t);
-    gw->setTransform(objectTM);
     const float screenScale = CADScreenScale(vpt, objectTM);
-    const Point3 textColor(color.r, color.g, color.b);
     const float height = fontSize * screenScale;
     mFontCache.SetFont(fontName);
     const MSTR displayText = SanitizeText(text);
 
+    GWScreenGuard screenGuard(gw);
+
+    IPoint2 segA[kMaxHitSegments] = {};
+    IPoint2 segB[kMaxHitSegments] = {};
+    int segmentCount = 0;
+
     if (displayText.Length() == 0)
     {
-        DrawTextMarker(gw, position, screenScale, textColor);
-    }
-    else
-    {
-        const float width = mFontCache.TextWidth(displayText.data()) *
-                            height / 1000.0f;
-        DrawTextBox(gw, position, width > 0.0f ? width : height * 0.5f,
-                    height, textColor);
+        IPoint2 sp;
+        if (!CADWorldToScreen(gw, position * objectTM, sp))
+        {
+            return 0;
+        }
+        AddSegment(IPoint2(sp.x - 3, sp.y), IPoint2(sp.x + 3, sp.y), segA, segB,
+                   segmentCount, kMaxHitSegments);
+        AddSegment(IPoint2(sp.x, sp.y - 3), IPoint2(sp.x, sp.y + 3), segA, segB,
+                   segmentCount, kMaxHitSegments);
+        return CADHitScreenSegments(hitRegion, segA, segB, segmentCount) ? 1 : 0;
     }
 
-    return gw->checkHitCode();
+    Point3 right;
+    Point3 up;
+    Point3 normal;
+    if (!CADGetBillboardAxes(vpt, right, up, normal))
+    {
+        return 0;
+    }
+    (void)normal;
+
+    const float width =
+        mFontCache.TextWidth(displayText.data()) * height / 1000.0f;
+    const Point3 origin = position * objectTM;
+    const Point3 corners[4] = {
+        origin,
+        origin + right * width,
+        origin + right * width + up * height,
+        origin + up * height,
+    };
+
+    IPoint2 projected[4] = {};
+    for (int i = 0; i < 4; ++i)
+    {
+        if (!CADWorldToScreen(gw, corners[i], projected[i]))
+        {
+            return 0;
+        }
+    }
+
+    int minX = projected[0].x;
+    int maxX = projected[0].x;
+    int minY = projected[0].y;
+    int maxY = projected[0].y;
+    for (int i = 1; i < 4; ++i)
+    {
+        if (projected[i].x < minX) minX = projected[i].x;
+        if (projected[i].x > maxX) maxX = projected[i].x;
+        if (projected[i].y < minY) minY = projected[i].y;
+        if (projected[i].y > maxY) maxY = projected[i].y;
+    }
+
+    const IPoint2 c0(minX, minY);
+    const IPoint2 c1(maxX, minY);
+    const IPoint2 c2(maxX, maxY);
+    const IPoint2 c3(minX, maxY);
+    AddSegment(c0, c1, segA, segB, segmentCount, kMaxHitSegments);
+    AddSegment(c1, c2, segA, segB, segmentCount, kMaxHitSegments);
+    AddSegment(c2, c3, segA, segB, segmentCount, kMaxHitSegments);
+    AddSegment(c3, c0, segA, segB, segmentCount, kMaxHitSegments);
+
+    return CADHitScreenSegments(hitRegion, segA, segB, segmentCount) ? 1 : 0;
 }

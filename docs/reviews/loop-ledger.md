@@ -66,8 +66,11 @@
 
 ## R2 批次记录（屏幕空间固定像素绘制）
 
-- 2026-11-19 阶段 1：新增屏幕空间公共设施（`CADWorldToScreen`/`CADDrawScreenSegment`/`CADDrawScreenPolyline`/`CADDrawScreenArrow`/`CADDrawScreenText`/`CADHitScreenSegments`/`GWScreenGuard`）；`CADDimension` 的 `Display/HitTest` 改为投影后像素绘制与屏幕线段命中。构建通过；批处理冒烟复跑 29 项全 PASS（fails=0）。文字仍用 BezFont（保持 fontName/fontSize 语义）。
-- 待办：CADText/CADLeader/CADTable 的 Display/HitTest 同类改造；完成后执行像素测量（A6）。
+- 2026-11-19：新增屏幕空间公共设施（`CADWorldToScreen`/`CADDrawScreenSegment`/`CADDrawScreenPolyline`/`CADDrawScreenArrow`/`CADDrawScreenText`/`CADHitScreenSegments`/`GWScreenGuard`）。
+- 阶段 1：`CADDimension` 的 `Display/HitTest` 改为投影后像素绘制与屏幕线段命中（提交 `1859c80`）。
+- 阶段 2：`CADLeader`（折线/箭头/注释）、`CADTable`（网格/单元格文本/命中）、`CADText`（空文本标记与命中框投影；BezFont 文本保留）完成同类改造。
+- 验证：Release x64 构建通过；批处理冒烟复跑 29 项全 PASS（fails=0）。
+- 未验证：GUI 视口显示效果、命中体验、透视裁剪边界、DPI；A6 像素测量待人工执行。
 
 ## 备注
 

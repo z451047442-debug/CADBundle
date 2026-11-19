@@ -10,6 +10,13 @@
 
 namespace
 {
+constexpr int kMaxGridSegments = 128;
+
+int ClampInt(int value, int low, int high)
+{
+    return value < low ? low : (value > high ? high : value);
+}
+
 MSTR FitCellText(GraphicsWindow* gw, const MSTR& text, float maxPixels)
 {
     if (text.Length() <= 16)
@@ -29,35 +36,54 @@ MSTR FitCellText(GraphicsWindow* gw, const MSTR& text, float maxPixels)
     return result;
 }
 
-void DrawTableGrid(GraphicsWindow* gw, const Point3& insertPos, int rows,
-                   int cols, float cellWidth, float cellHeight,
-                   const Point3& color)
+void AddSegment(const IPoint2& a, const IPoint2& b, IPoint2* segA, IPoint2* segB,
+                int& count, int maxSegments)
 {
+    if (count >= maxSegments)
+    {
+        return;
+    }
+    segA[count] = a;
+    segB[count] = b;
+    ++count;
+}
+
+int BuildTableGridScreen(GraphicsWindow* gw, const Matrix3& objectTM,
+                         const Point3& insertPos, int rows, int cols,
+                         float cellWidthWorld, float cellHeightWorld,
+                         IPoint2* segA, IPoint2* segB, int maxSegments)
+{
+    int count = 0;
     for (int row = 0; row <= rows; ++row)
     {
-        const Point3 line[2] = {
-            insertPos + Point3(0.0f, row * cellHeight, 0.0f),
-            insertPos + Point3(cols * cellWidth, row * cellHeight, 0.0f),
-        };
-        CADDrawPolyline(gw, line, 2, color);
+        const Point3 a = insertPos + Point3(0.0f, row * cellHeightWorld, 0.0f);
+        const Point3 b = insertPos +
+                         Point3(cols * cellWidthWorld, row * cellHeightWorld,
+                                0.0f);
+        IPoint2 sa;
+        IPoint2 sb;
+        if (CADWorldToScreen(gw, a * objectTM, sa) &&
+            CADWorldToScreen(gw, b * objectTM, sb))
+        {
+            AddSegment(sa, sb, segA, segB, count, maxSegments);
+        }
     }
 
     for (int col = 0; col <= cols; ++col)
     {
-        const Point3 line[2] = {
-            insertPos + Point3(col * cellWidth, 0.0f, 0.0f),
-            insertPos + Point3(col * cellWidth, rows * cellHeight, 0.0f),
-        };
-        CADDrawPolyline(gw, line, 2, color);
+        const Point3 a = insertPos + Point3(col * cellWidthWorld, 0.0f, 0.0f);
+        const Point3 b = insertPos +
+                         Point3(col * cellWidthWorld, rows * cellHeightWorld,
+                                0.0f);
+        IPoint2 sa;
+        IPoint2 sb;
+        if (CADWorldToScreen(gw, a * objectTM, sa) &&
+            CADWorldToScreen(gw, b * objectTM, sb))
+        {
+            AddSegment(sa, sb, segA, segB, count, maxSegments);
+        }
     }
-
-    const Point3 outline[4] = {
-        insertPos,
-        insertPos + Point3(cols * cellWidth, 0.0f, 0.0f),
-        insertPos + Point3(cols * cellWidth, rows * cellHeight, 0.0f),
-        insertPos + Point3(0.0f, rows * cellHeight, 0.0f),
-    };
-    CADDrawClosedPolyline(gw, outline, 4, color);
+    return count;
 }
 }
 
@@ -143,15 +169,27 @@ int CADTable::Display(TimeValue t, INode* inode, ViewExp* vpt, int flags)
     }
 
     const Matrix3 objectTM = inode->GetObjectTM(t);
-    gw->setTransform(objectTM);
     const float screenScale = CADScreenScale(vpt, objectTM);
-    const float width = cellWidth * screenScale;
-    const float height = cellHeight * screenScale;
+    const float widthWorld = cellWidth * screenScale;
+    const float heightWorld = cellHeight * screenScale;
     const Point3 line(lineColor.r, lineColor.g, lineColor.b);
     const Point3 text(textColor.r, textColor.g, textColor.b);
 
-    DrawTableGrid(gw, insertPos, rows, cols, width, height, line);
-    gw->setColor(TEXT_COLOR, text);
+    GWScreenGuard screenGuard(gw);
+
+    IPoint2 segA[kMaxGridSegments] = {};
+    IPoint2 segB[kMaxGridSegments] = {};
+    const int segmentCount =
+        BuildTableGridScreen(gw, objectTM, insertPos, rows, cols, widthWorld,
+                             heightWorld, segA, segB, kMaxGridSegments);
+    for (int i = 0; i < segmentCount; ++i)
+    {
+        CADDrawScreenSegment(gw, segA[i], segB[i], line);
+    }
+
+    const float pointSize =
+        static_cast<float>(ClampInt(static_cast<int>(cellHeight * 0.6f + 0.5f),
+                                    6, 48));
     for (int row = 0; row < rows; ++row)
     {
         for (int col = 0; col < cols; ++col)
@@ -162,11 +200,17 @@ int CADTable::Display(TimeValue t, INode* inode, ViewExp* vpt, int flags)
                 continue;
             }
 
-            const MSTR display = FitCellText(gw, mCells[index], width);
-            const Point3 position = insertPos +
-                Point3(col * width + width * 0.1f,
-                       row * height + height * 0.7f, 0.0f);
-            gw->text(&position, display.data());
+            const Point3 center = insertPos +
+                Point3((col + 0.1f) * widthWorld,
+                       (row + 0.7f) * heightWorld, 0.0f);
+            IPoint2 p;
+            if (!CADWorldToScreen(gw, center * objectTM, p))
+            {
+                continue;
+            }
+
+            const MSTR display = FitCellText(gw, mCells[index], cellWidth);
+            CADDrawScreenText(gw, p, display.data(), pointSize, text);
         }
     }
     return 0;
@@ -200,20 +244,20 @@ int CADTable::HitTest(TimeValue t, INode* inode, int type, int crossing,
         return 0;
     }
 
-    GWRndLimitsGuard limits(gw);
-    const DWORD savedLimits = gw->getRndLimits();
-    gw->setRndLimits((savedLimits | GW_PICK) & ~GW_ILLUM);
-
     HitRegion hitRegion;
     MakeHitRegion(hitRegion, type, crossing, 4, p);
-    gw->setHitRegion(&hitRegion);
-    gw->clearHitCode();
 
     const Matrix3 objectTM = inode->GetObjectTM(t);
-    gw->setTransform(objectTM);
     const float screenScale = CADScreenScale(vpt, objectTM);
-    const Point3 line(lineColor.r, lineColor.g, lineColor.b);
-    DrawTableGrid(gw, insertPos, rows, cols, cellWidth * screenScale,
-                  cellHeight * screenScale, line);
-    return gw->checkHitCode();
+
+    GWScreenGuard screenGuard(gw);
+
+    IPoint2 segA[kMaxGridSegments] = {};
+    IPoint2 segB[kMaxGridSegments] = {};
+    const int segmentCount =
+        BuildTableGridScreen(gw, objectTM, insertPos, rows, cols,
+                             cellWidth * screenScale, cellHeight * screenScale,
+                             segA, segB, kMaxGridSegments);
+
+    return CADHitScreenSegments(hitRegion, segA, segB, segmentCount) ? 1 : 0;
 }
