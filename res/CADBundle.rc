@@ -61,6 +61,14 @@ BEGIN
     IDS_LEADER_TEXTH    "文字高度"
     IDS_LEADER_LINECOL  "引线颜色"
     IDS_LEADER_TEXTCOL  "文字颜色"
+    IDS_TABLE_POS       "插入位置"
+    IDS_TABLE_ROWS      "行数"
+    IDS_TABLE_COLS      "列数"
+    IDS_TABLE_CW        "单元格宽"
+    IDS_TABLE_CH        "单元格高"
+    IDS_TABLE_LINECOL   "网格颜色"
+    IDS_TABLE_TEXTCOL   "文字颜色"
+    IDS_TABLE_CELLS     "单元格文本"
 END
 
 IDD_CAD_PANEL DIALOGEX 0, 0, 240, 160
@@ -207,4 +215,60 @@ BEGIN
     CONTROL         "", IDC_LEAD_LINECOL, "ColorSwatch", WS_TABSTOP, 55, 99, 50, 12
     LTEXT           "文字颜色", IDC_STATIC, 6, 118, 42, 8
     CONTROL         "", IDC_LEAD_TEXTCOL, "ColorSwatch", WS_TABSTOP, 55, 115, 50, 12
+END
+
+IDD_CAD_TABLE DIALOGEX 0, 0, 230, 190
+STYLE DS_SETFONT | WS_CHILD | WS_VISIBLE
+CAPTION "CADTable"
+FONT 9, "Microsoft YaHei UI", 400, 0, 0x86
+BEGIN
+    LTEXT           "位置 X", IDC_STATIC, 6, 6, 42, 8
+    CONTROL         "", IDC_TABLE_POSX, "CustEdit", WS_TABSTOP, 55, 4, 34, 10
+    CONTROL         "", IDC_TABLE_POSXSPIN, "SpinnerControl", 0x0, 90, 4, 7, 10
+    LTEXT           "Y", IDC_STATIC, 101, 6, 8, 8
+    CONTROL         "", IDC_TABLE_POSY, "CustEdit", WS_TABSTOP, 109, 4, 34, 10
+    CONTROL         "", IDC_TABLE_POSYSPIN, "SpinnerControl", 0x0, 144, 4, 7, 10
+    LTEXT           "Z", IDC_STATIC, 155, 6, 8, 8
+    CONTROL         "", IDC_TABLE_POSZ, "CustEdit", WS_TABSTOP, 163, 4, 34, 10
+    CONTROL         "", IDC_TABLE_POSZSPIN, "SpinnerControl", 0x0, 198, 4, 7, 10
+
+    LTEXT           "行数", IDC_STATIC, 6, 22, 42, 8
+    CONTROL         "", IDC_TABLE_ROWS, "CustEdit", WS_TABSTOP, 55, 20, 34, 10
+    CONTROL         "", IDC_TABLE_ROWSSPIN, "SpinnerControl", 0x0, 90, 20, 7, 10
+    LTEXT           "列数", IDC_STATIC, 110, 22, 34, 8
+    CONTROL         "", IDC_TABLE_COLS, "CustEdit", WS_TABSTOP, 145, 20, 34, 10
+    CONTROL         "", IDC_TABLE_COLSSPIN, "SpinnerControl", 0x0, 180, 20, 7, 10
+
+    LTEXT           "单元格宽", IDC_STATIC, 6, 38, 46, 8
+    CONTROL         "", IDC_TABLE_CW, "CustEdit", WS_TABSTOP, 55, 36, 34, 10
+    CONTROL         "", IDC_TABLE_CWSPIN, "SpinnerControl", 0x0, 90, 36, 7, 10
+    LTEXT           "单元格高", IDC_STATIC, 110, 38, 46, 8
+    CONTROL         "", IDC_TABLE_CH, "CustEdit", WS_TABSTOP, 159, 36, 34, 10
+    CONTROL         "", IDC_TABLE_CHSPIN, "SpinnerControl", 0x0, 194, 36, 7, 10
+
+    PUSHBUTTON      "编辑单元格...", IDC_TABLE_EDIT, 55, 54, 100, 18
+    LTEXT           "网格颜色", IDC_STATIC, 6, 82, 46, 8
+    CONTROL         "", IDC_TABLE_LINECOL, "ColorSwatch", WS_TABSTOP, 55, 79, 50, 12
+    LTEXT           "文字颜色", IDC_STATIC, 6, 98, 46, 8
+    CONTROL         "", IDC_TABLE_TEXTCOL, "ColorSwatch", WS_TABSTOP, 55, 95, 50, 12
+END
+
+IDD_CAD_TABLE_EDITOR DIALOGEX 0, 0, 360, 278
+STYLE DS_SETFONT | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "编辑表格单元格"
+FONT 9, "Microsoft YaHei UI", 400, 0, 0x86
+BEGIN
+    CONTROL         "", IDC_TABLE_EDIT_LIST, "SysListView32", 0x00800005, 6, 6, 348, 188
+    LTEXT           "单元格", IDC_STATIC, 6, 202, 42, 8
+    EDITTEXT        IDC_TABLE_EDIT_CELL, 55, 200, 260, 12, ES_AUTOHSCROLL
+    PUSHBUTTON      "应用单元格/行列", IDC_TABLE_EDIT_APPLY, 320, 199, 34, 14
+    LTEXT           "行", IDC_STATIC, 6, 220, 14, 8
+    EDITTEXT        IDC_TABLE_EDIT_ROWS, 22, 218, 34, 12, ES_NUMBER
+    CONTROL         "", IDC_TABLE_EDIT_ROWSSPIN, "msctls_updown32", 0x10000016, 56, 218, 9, 12
+    LTEXT           "列", IDC_STATIC, 82, 220, 14, 8
+    EDITTEXT        IDC_TABLE_EDIT_COLS, 98, 218, 34, 12, ES_NUMBER
+    CONTROL         "", IDC_TABLE_EDIT_COLSSPIN, "msctls_updown32", 0x10000016, 132, 218, 9, 12
+    LTEXT           "状态：就绪", IDC_TABLE_EDIT_STATUS, 6, 244, 340, 10
+    DEFPUSHBUTTON   "确定", IDOK, 220, 258, 60, 16
+    PUSHBUTTON      "取消", IDC_TABLE_EDIT_CANCEL, 290, 258, 60, 16
 END

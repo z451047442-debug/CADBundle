@@ -24,6 +24,9 @@
     <ClCompile Include="src\CADLeader.cpp"><Filter>Source Files</Filter></ClCompile>
     <ClCompile Include="src\CADLeaderRender.cpp"><Filter>Source Files</Filter></ClCompile>
     <ClCompile Include="src\CADTable.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClCompile Include="src\CADTablePersistence.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClCompile Include="src\CADTableRender.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClCompile Include="src\CADTableEditor.cpp"><Filter>Source Files</Filter></ClCompile>
     <ClCompile Include="src\CADAnnotationCommon.cpp"><Filter>Source Files</Filter></ClCompile>
     <ClCompile Include="src\CADBezFontText.cpp"><Filter>Source Files</Filter></ClCompile>
     <ClCompile Include="src\CADParamBlockHost.cpp"><Filter>Source Files</Filter></ClCompile>
@@ -36,6 +39,7 @@
     <ClInclude Include="src\CADText.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="src\CADLeader.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="src\CADTable.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="src\CADTableEditor.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="src\CADAnnotationCommon.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="src\CADBezFontText.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="src\CADParamBlockHost.h"><Filter>Header Files</Filter></ClInclude>

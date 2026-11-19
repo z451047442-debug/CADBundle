@@ -47,7 +47,7 @@
     <Link>
       <EnableCOMDATFolding>false</EnableCOMDATFolding>
       <AdditionalLibraryDirectories>$(MaxSdkLib);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>bmm.lib;core.lib;Geom.lib;gfx.lib;mesh.lib;maxutil.lib;maxscrpt.lib;ManipSys.lib;Paramblk2.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>bmm.lib;core.lib;Geom.lib;gfx.lib;mesh.lib;maxutil.lib;maxscrpt.lib;ManipSys.lib;Paramblk2.lib;comctl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ModuleDefinitionFile>CADBundle.def</ModuleDefinitionFile>
     </Link>
     <ResourceCompile>
@@ -64,6 +64,9 @@
     <ClCompile Include="src\CADLeader.cpp" />
     <ClCompile Include="src\CADLeaderRender.cpp" />
     <ClCompile Include="src\CADTable.cpp" />
+    <ClCompile Include="src\CADTablePersistence.cpp" />
+    <ClCompile Include="src\CADTableRender.cpp" />
+    <ClCompile Include="src\CADTableEditor.cpp" />
     <ClCompile Include="src\CADAnnotationCommon.cpp" />
     <ClCompile Include="src\CADBezFontText.cpp" />
     <ClCompile Include="src\CADParamBlockHost.cpp" />
@@ -76,6 +79,7 @@
     <ClInclude Include="src\CADText.h" />
     <ClInclude Include="src\CADLeader.h" />
     <ClInclude Include="src\CADTable.h" />
+    <ClInclude Include="src\CADTableEditor.h" />
     <ClInclude Include="src\CADAnnotationCommon.h" />
     <ClInclude Include="src\CADBezFontText.h" />
     <ClInclude Include="src\CADParamBlockHost.h" />
