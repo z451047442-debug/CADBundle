@@ -2,6 +2,7 @@
 #include "CADAnnotationCommon.h"
 
 #include <algorithm>
+#include <utility>
 #include <vector>
 
 namespace
@@ -25,6 +26,34 @@ constexpr int kMinRows = 1;
 constexpr int kMaxRows = 50;
 constexpr int kMaxCellCharacters = 256;
 }
+
+class CADTablePostLoad : public PostLoadCallback
+{
+public:
+    CADTablePostLoad(CADTable* table, bool haveData, int rows, int cols,
+                     const Point3& insertPos, std::vector<MSTR> cells)
+        : mTable(table), mHaveData(haveData), mRows(rows), mCols(cols),
+          mInsertPos(insertPos), mCells(std::move(cells))
+    {
+    }
+
+    void proc(ILoad*) override
+    {
+        if (mTable)
+        {
+            mTable->ApplyLoadedData(mHaveData, mRows, mCols, mInsertPos, mCells);
+        }
+        delete this;
+    }
+
+private:
+    CADTable* mTable = nullptr;
+    bool mHaveData = false;
+    int mRows = 0;
+    int mCols = 0;
+    Point3 mInsertPos;
+    std::vector<MSTR> mCells;
+};
 
 IOResult CADTable::Save(ISave* isave)
 {
@@ -99,7 +128,7 @@ IOResult CADTable::Load(ILoad* iload)
     IOResult result = IO_OK;
     DWORD rows = 0;
     DWORD cols = 0;
-    Point3 insertPos;
+    Point3 insertPos(0.0f, 0.0f, 0.0f);
     std::vector<MSTR> cells;
     bool haveData = false;
 
@@ -194,26 +223,53 @@ IOResult CADTable::Load(ILoad* iload)
         return result;
     }
 
-    if (haveData)
+    // Defer applying the chunk until every reference is in place so the chunk
+    // overrides the pblock mirror regardless of the system load order
+    // (B-12/B7).
+    iload->RegisterPostLoadCallback(new CADTablePostLoad(
+        this, haveData, static_cast<int>(rows), static_cast<int>(cols),
+        insertPos, std::move(cells)));
+    return IO_OK;
+}
+
+void CADTable::ApplyLoadedData(bool haveData, int rows, int cols,
+                               const Point3& insertPos,
+                               const std::vector<MSTR>& cells)
+{
+    if (!mPBlock)
     {
-        const bool previous = mSyncing;
-        mSyncing = true;
-        mRows = static_cast<int>(rows);
-        mCols = static_cast<int>(cols);
-        mCells = cells;
-        mPBlock->SetValue(table_insert_pos, 0, insertPos);
-        mPBlock->SetValue(table_rows, 0, mRows);
-        mPBlock->SetValue(table_cols, 0, mCols);
-        mPBlock->SetCount(table_cell_texts, static_cast<int>(mCells.size()));
-        for (int i = 0; i < static_cast<int>(mCells.size()); ++i)
-        {
-            mPBlock->SetValue(table_cell_texts, 0, mCells[i].data(), i);
-        }
-        mSyncing = previous;
+        return;
     }
-    else
+
+    if (!haveData)
     {
         EnsureDimensions(0);
+        return;
     }
-    return IO_OK;
+
+    rows = std::max(kMinRows, std::min(kMaxRows, rows));
+    cols = std::max(kMinRows, std::min(kMaxRows, cols));
+    const size_t needed = static_cast<size_t>(rows) * cols;
+    std::vector<MSTR> loaded(needed);
+    for (size_t i = 0; i < needed && i < cells.size(); ++i)
+    {
+        loaded[i] = cells[i];
+    }
+
+    const bool previous = mSyncing;
+    mSyncing = true;
+    mRows = rows;
+    mCols = cols;
+    mCells.swap(loaded);
+    mPBlock->SetValue(table_insert_pos, 0, insertPos);
+    mPBlock->SetValue(table_rows, 0, mRows);
+    mPBlock->SetValue(table_cols, 0, mCols);
+    mPBlock->SetCount(table_cell_texts, static_cast<int>(mCells.size()));
+    for (int i = 0; i < static_cast<int>(mCells.size()); ++i)
+    {
+        mPBlock->SetValue(table_cell_texts, 0, mCells[i].data(), i);
+    }
+    mSyncing = previous;
+
+    NotifyDependents(FOREVER, PART_ALL, REFMSG_CHANGE);
 }

@@ -222,6 +222,33 @@ void CADText::EndEditParams(IObjParam* ip, ULONG flags, Animatable* next)
     CADEndAutoUI(GetCADTextDesc(), ip, this, flags, next);
 }
 
+class CADTextPostLoad : public PostLoadCallback
+{
+public:
+    CADTextPostLoad(CADText* obj, const Point3& position)
+        : mObj(obj), mPosition(position)
+    {
+    }
+
+    void proc(ILoad*) override
+    {
+        if (mObj)
+        {
+            IParamBlock2* pblock = mObj->GetParamBlockByID(kTextParams);
+            if (pblock)
+            {
+                pblock->SetValue(text_position, 0, mPosition);
+            }
+            mObj->NotifyDependents(FOREVER, PART_ALL, REFMSG_CHANGE);
+        }
+        delete this;
+    }
+
+private:
+    CADText* mObj = nullptr;
+    Point3 mPosition;
+};
+
 IOResult CADText::Save(ISave* isave)
 {
     if (!isave || !mPBlock)
@@ -308,7 +335,9 @@ IOResult CADText::Load(ILoad* iload)
 
     if (havePosition)
     {
-        mPBlock->SetValue(text_position, 0, position);
+        // Deferred until every reference is loaded so the chunk overrides the
+        // pblock mirror regardless of the system load order (B-12/B7).
+        iload->RegisterPostLoadCallback(new CADTextPostLoad(this, position));
     }
     return IO_OK;
 }

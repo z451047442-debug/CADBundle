@@ -269,6 +269,38 @@ void CADLeader::EndEditParams(IObjParam* ip, ULONG flags, Animatable* next)
     CADEndAutoUI(GetCADLeaderDesc(), ip, this, flags, next);
 }
 
+class CADLeaderPostLoad : public PostLoadCallback
+{
+public:
+    CADLeaderPostLoad(CADLeader* obj, const Point3 points[3]) : mObj(obj)
+    {
+        for (int i = 0; i < 3; ++i)
+        {
+            mPoints[i] = points[i];
+        }
+    }
+
+    void proc(ILoad*) override
+    {
+        if (mObj)
+        {
+            IParamBlock2* pblock = mObj->GetParamBlockByID(kLeaderParams);
+            if (pblock)
+            {
+                pblock->SetValue(leader_start, 0, mPoints[0]);
+                pblock->SetValue(leader_elbow, 0, mPoints[1]);
+                pblock->SetValue(leader_textpos, 0, mPoints[2]);
+            }
+            mObj->NotifyDependents(FOREVER, PART_ALL, REFMSG_CHANGE);
+        }
+        delete this;
+    }
+
+private:
+    CADLeader* mObj = nullptr;
+    Point3 mPoints[3];
+};
+
 IOResult CADLeader::Save(ISave* isave)
 {
     if (!isave || !mPBlock)
@@ -374,9 +406,9 @@ IOResult CADLeader::Load(ILoad* iload)
 
     if (havePoints)
     {
-        mPBlock->SetValue(leader_start, 0, points[0]);
-        mPBlock->SetValue(leader_elbow, 0, points[1]);
-        mPBlock->SetValue(leader_textpos, 0, points[2]);
+        // Deferred until every reference is loaded so the chunk overrides the
+        // pblock mirror regardless of the system load order (B-12/B7).
+        iload->RegisterPostLoadCallback(new CADLeaderPostLoad(this, points));
     }
     return IO_OK;
 }

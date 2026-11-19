@@ -305,6 +305,38 @@ void CADDimension::EndEditParams(IObjParam* ip, ULONG flags, Animatable* next)
     CADEndAutoUI(GetCADDimensionDesc(), ip, this, flags, next);
 }
 
+class CADDimensionPostLoad : public PostLoadCallback
+{
+public:
+    CADDimensionPostLoad(CADDimension* obj, const Point3 points[3]) : mObj(obj)
+    {
+        for (int i = 0; i < 3; ++i)
+        {
+            mPoints[i] = points[i];
+        }
+    }
+
+    void proc(ILoad*) override
+    {
+        if (mObj)
+        {
+            IParamBlock2* pblock = mObj->GetParamBlockByID(kDimParams);
+            if (pblock)
+            {
+                pblock->SetValue(dim_p0, 0, mPoints[0]);
+                pblock->SetValue(dim_p1, 0, mPoints[1]);
+                pblock->SetValue(dim_p2, 0, mPoints[2]);
+            }
+            mObj->NotifyDependents(FOREVER, PART_ALL, REFMSG_CHANGE);
+        }
+        delete this;
+    }
+
+private:
+    CADDimension* mObj = nullptr;
+    Point3 mPoints[3];
+};
+
 IOResult CADDimension::Save(ISave* isave)
 {
     if (!isave || !mPBlock)
@@ -409,9 +441,12 @@ IOResult CADDimension::Load(ILoad* iload)
 
     if (havePoints)
     {
-        mPBlock->SetValue(dim_p0, 0, loadedPoints[0]);
-        mPBlock->SetValue(dim_p1, 0, loadedPoints[1]);
-        mPBlock->SetValue(dim_p2, 0, loadedPoints[2]);
+        // The pblock mirror is restored by the reference system at an
+        // unspecified point relative to Load(); defer the chunk override until
+        // every reference is in place so the chunk stays authoritative
+        // (B-12/B7).
+        iload->RegisterPostLoadCallback(
+            new CADDimensionPostLoad(this, loadedPoints));
     }
     return IO_OK;
 }

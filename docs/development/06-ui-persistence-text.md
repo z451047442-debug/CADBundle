@@ -69,7 +69,7 @@
 
 - 参数：pblock 自动持久化（颜色、布尔、浮点、整数、字符串、Point3 镜像、字符串表镜像）。
 - 几何点与 `cellTexts`：显式自定义 chunk 为唯一权威；pblock 镜像只用于编辑/运行时。
-- 加载顺序：系统先恢复 pblock 作为镜像，再读取 chunk；chunk 值覆盖镜像；表格 rows/cols/cellTexts 在 chunk 读取后统一回填；无 chunk 时用 pblock 默认/镜像；pblock 不得在 chunk 之后反向覆盖；实现文档统一此顺序（B-12）。
+- 加载顺序（B-12/B7 强化）：系统恢复 pblock 镜像；对象 `Load()` 只解析并校验 chunk，并通过 `ILoad::RegisterPostLoadCallback`（默认优先级 5，晚于 `ParamBlock2PLCB` 的 0）在**所有引用就绪后**回填镜像；无 chunk 时在同一回调中按 pblock 镜像初始化；因此无论系统先/后加载 pblock，chunk 都是唯一权威；pblock 不得反向覆盖 chunk；运行时只改 pblock 镜像。
 - 禁止无优先级双写：运行时修改只写 pblock（镜像），保存时写 chunk；加载后以 chunk 回填镜像。不得在加载后用 pblock 覆盖 chunk。
 - 版本：每类 chunk 有 DWORD 版本；pblock 用 `P_VERSION` + `ParamBlock2PLCB`（如布局变化）。
 - 字符串表：长度前缀 + 字符数据，Unicode/UTF-8 安全；校验 `cellCount==rows*cols`、rows/cols 1–50、长度上限。

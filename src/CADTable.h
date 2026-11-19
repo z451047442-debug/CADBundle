@@ -66,6 +66,9 @@ public:
                            std::vector<MSTR>& cells);
     void ApplyEditorSnapshot(int rows, int cols,
                              const std::vector<MSTR>& cells);
+    void ApplyLoadedData(bool haveData, int rows, int cols,
+                         const Point3& insertPos,
+                         const std::vector<MSTR>& cells);
 
 private:
     bool GetParams(TimeValue t, Point3& insertPos, int& rows, int& cols,
