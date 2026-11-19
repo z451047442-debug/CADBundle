@@ -22,6 +22,7 @@
     <ClCompile Include="src\CADText.cpp"><Filter>Source Files</Filter></ClCompile>
     <ClCompile Include="src\CADTextRender.cpp"><Filter>Source Files</Filter></ClCompile>
     <ClCompile Include="src\CADLeader.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClCompile Include="src\CADLeaderRender.cpp"><Filter>Source Files</Filter></ClCompile>
     <ClCompile Include="src\CADTable.cpp"><Filter>Source Files</Filter></ClCompile>
     <ClCompile Include="src\CADAnnotationCommon.cpp"><Filter>Source Files</Filter></ClCompile>
     <ClCompile Include="src\CADBezFontText.cpp"><Filter>Source Files</Filter></ClCompile>

@@ -62,6 +62,7 @@
     <ClCompile Include="src\CADText.cpp" />
     <ClCompile Include="src\CADTextRender.cpp" />
     <ClCompile Include="src\CADLeader.cpp" />
+    <ClCompile Include="src\CADLeaderRender.cpp" />
     <ClCompile Include="src\CADTable.cpp" />
     <ClCompile Include="src\CADAnnotationCommon.cpp" />
     <ClCompile Include="src\CADBezFontText.cpp" />
