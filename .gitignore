@@ -9,13 +9,13 @@
 *.VC.db-wal
 *.vsidx
 
-# Build outputs
-backup/
-build/
-x64/
-obj/
-Debug/
-Release/
+# Build outputs (anchored to repo root so docs/ is never ignored)
+/backup/
+/build/
+/x64/
+/obj/
+/Debug/
+/Release/
 *.dlo
 *.dll
 *.pdb
