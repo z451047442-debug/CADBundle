@@ -58,6 +58,7 @@
     <ClCompile Include="src\DllEntry.cpp" />
     <ClCompile Include="src\CADAnnotatePanel.cpp" />
     <ClCompile Include="src\CADDimension.cpp" />
+    <ClCompile Include="src\CADDimensionRender.cpp" />
     <ClCompile Include="src\CADText.cpp" />
     <ClCompile Include="src\CADLeader.cpp" />
     <ClCompile Include="src\CADTable.cpp" />

@@ -18,6 +18,7 @@
     <ClCompile Include="src\DllEntry.cpp"><Filter>Source Files</Filter></ClCompile>
     <ClCompile Include="src\CADAnnotatePanel.cpp"><Filter>Source Files</Filter></ClCompile>
     <ClCompile Include="src\CADDimension.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClCompile Include="src\CADDimensionRender.cpp"><Filter>Source Files</Filter></ClCompile>
     <ClCompile Include="src\CADText.cpp"><Filter>Source Files</Filter></ClCompile>
     <ClCompile Include="src\CADLeader.cpp"><Filter>Source Files</Filter></ClCompile>
     <ClCompile Include="src\CADTable.cpp"><Filter>Source Files</Filter></ClCompile>
