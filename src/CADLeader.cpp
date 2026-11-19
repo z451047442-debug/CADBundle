@@ -85,6 +85,7 @@ static ParamBlockDesc2 gLeaderParamBlock(
 
     leader_note, _T("note"), TYPE_STRING, 0, IDS_LEADER_NOTE,
         p_default, _T("注释"),
+        p_ui, TYPE_EDITBOX, IDC_LEAD_NOTE,
         p_end,
 
     leader_arrow, _T("arrowSize"), TYPE_FLOAT, 0, IDS_LEADER_ARROW,
@@ -321,12 +322,10 @@ private:
 void CADLeader::BeginEditParams(IObjParam* ip, ULONG flags, Animatable* prev)
 {
     CADBeginAutoUI(GetCADLeaderDesc(), ip, this, flags, prev);
-    gLeaderParamBlock.SetUserDlgProc(new CADLeaderThemeProc(this));
 }
 
 void CADLeader::EndEditParams(IObjParam* ip, ULONG flags, Animatable* next)
 {
-    gLeaderParamBlock.SetUserDlgProc(nullptr);
     CADEndAutoUI(GetCADLeaderDesc(), ip, this, flags, next);
 }
 

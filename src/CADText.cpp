@@ -67,6 +67,7 @@ static ParamBlockDesc2 gTextParamBlock(
 
     text_string, _T("textString"), TYPE_STRING, 0, IDS_TEXT_STRING,
         p_default, _T("文字"),
+        p_ui, TYPE_EDITBOX, IDC_TEXT_STRING,
         p_end,
 
     text_font_size, _T("fontSize"), TYPE_FLOAT, 0, IDS_TEXT_SIZE,
@@ -77,6 +78,7 @@ static ParamBlockDesc2 gTextParamBlock(
 
     text_font_name, _T("fontName"), TYPE_STRING, 0, IDS_TEXT_FONT,
         p_default, _T("Microsoft YaHei"),
+        p_ui, TYPE_EDITBOX, IDC_TEXT_FONT,
         p_end,
 
     text_color, _T("textColor"), TYPE_RGBA, 0, IDS_TEXT_COLOR,
@@ -359,12 +361,10 @@ private:
 void CADText::BeginEditParams(IObjParam* ip, ULONG flags, Animatable* prev)
 {
     CADBeginAutoUI(GetCADTextDesc(), ip, this, flags, prev);
-    gTextParamBlock.SetUserDlgProc(new CADTextThemeProc(this));
 }
 
 void CADText::EndEditParams(IObjParam* ip, ULONG flags, Animatable* next)
 {
-    gTextParamBlock.SetUserDlgProc(nullptr);
     CADEndAutoUI(GetCADTextDesc(), ip, this, flags, next);
 }
 
