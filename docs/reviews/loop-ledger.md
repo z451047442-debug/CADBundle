@@ -78,6 +78,7 @@
 - 根因：P_AUTO_UI 的 Win32 对话框未处理 `WM_CTLCOLORDLG/STATIC/EDIT/LISTBOX`，静态文本与编辑框使用系统默认浅色画刷。
 - 修复：新增 `CADApplyThemeColors`，使用 `IColorManager::CustSysColor/CustSysColorBrush`（`COLOR_BTNFACE/BTNTEXT/WINDOW/WINDOWTEXT`）；四类参数对话框在 `BeginEditParams` 注册主题 `ParamMap2UserDlgProc`；表格编辑器同步处理颜色消息并设置 ListView 背景/文字色。
 - 验证：Release x64 构建通过；批处理冒烟 29 项全 PASS；最新 DLO 已安装（SHA-256 `d7ab5d080d61866f065f6e50ead3f44d508b2ff7902a4b51cff05e980c283ede`）。GUI 主题效果待用户复查。
+- 追加（同日）：用户反馈“注释、文字不能编辑”与类名标题条不协调。修复：`IDC_TEXT_STRING`/`IDC_TEXT_FONT`/`IDC_LEAD_NOTE` 由 `CustEdit` 改为标准 `EDITTEXT`（`TYPE_EDITBOX` 的正确控件类）；四个参数对话框 `CAPTION` 置空，尝试消除 Max 绘制的浅蓝色类名标题条。构建与冒烟通过；新 DLO SHA-256 `2caf1f98cbea2c198c6c30ddb3aca3e9b14c5be5730eec06ef92f522ade5995a`，待用户重启 Max 复查。
 
 ## 备注
 

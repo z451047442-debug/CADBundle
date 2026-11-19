@@ -90,7 +90,7 @@ END
 
 IDD_CAD_DIM DIALOGEX 0, 0, 230, 238
 STYLE DS_SETFONT | WS_CHILD | WS_VISIBLE
-CAPTION "CADDimension"
+CAPTION ""
 FONT 9, "Microsoft YaHei UI", 400, 0, 0x86
 BEGIN
     LTEXT           "P0 X", IDC_STATIC, 6, 6, 42, 8
@@ -144,7 +144,7 @@ END
 
 IDD_CAD_TEXT DIALOGEX 0, 0, 230, 128
 STYLE DS_SETFONT | WS_CHILD | WS_VISIBLE
-CAPTION "CADText"
+CAPTION ""
 FONT 9, "Microsoft YaHei UI", 400, 0, 0x86
 BEGIN
     LTEXT           "位置 X", IDC_STATIC, 6, 6, 42, 8
@@ -158,19 +158,19 @@ BEGIN
     CONTROL         "", IDC_TEXT_POSZSPIN, "SpinnerControl", 0x0, 198, 4, 7, 10
 
     LTEXT           "文字", IDC_STATIC, 6, 54, 42, 8
-    CONTROL         "", IDC_TEXT_STRING, "CustEdit", WS_TABSTOP, 55, 52, 165, 12
+    EDITTEXT        IDC_TEXT_STRING, 55, 52, 165, 12, ES_AUTOHSCROLL | WS_TABSTOP
     LTEXT           "高度", IDC_STATIC, 6, 72, 42, 8
     CONTROL         "", IDC_TEXT_SIZE, "CustEdit", WS_TABSTOP, 55, 70, 34, 10
     CONTROL         "", IDC_TEXT_SIZESPIN, "SpinnerControl", 0x0, 90, 70, 7, 10
     LTEXT           "字体", IDC_STATIC, 6, 90, 42, 8
-    CONTROL         "", IDC_TEXT_FONT, "CustEdit", WS_TABSTOP, 55, 88, 165, 12
+    EDITTEXT        IDC_TEXT_FONT, 55, 88, 165, 12, ES_AUTOHSCROLL | WS_TABSTOP
     LTEXT           "颜色", IDC_STATIC, 6, 108, 42, 8
     CONTROL         "", IDC_TEXT_COLOR, "ColorSwatch", WS_TABSTOP, 55, 105, 50, 12
 END
 
 IDD_CAD_LEADER DIALOGEX 0, 0, 230, 220
 STYLE DS_SETFONT | WS_CHILD | WS_VISIBLE
-CAPTION "CADLeader"
+CAPTION ""
 FONT 9, "Microsoft YaHei UI", 400, 0, 0x86
 BEGIN
     LTEXT           "起点 X", IDC_STATIC, 6, 6, 42, 8
@@ -204,7 +204,7 @@ BEGIN
     CONTROL         "", IDC_LEAD_TEXTPOSZSPIN, "SpinnerControl", 0x0, 198, 32, 7, 10
 
     LTEXT           "注释", IDC_STATIC, 6, 54, 42, 8
-    CONTROL         "", IDC_LEAD_NOTE, "CustEdit", WS_TABSTOP, 55, 52, 165, 12
+    EDITTEXT        IDC_LEAD_NOTE, 55, 52, 165, 12, ES_AUTOHSCROLL | WS_TABSTOP
     LTEXT           "箭头大小", IDC_STATIC, 6, 72, 42, 8
     CONTROL         "", IDC_LEAD_ARROW, "CustEdit", WS_TABSTOP, 55, 70, 34, 10
     CONTROL         "", IDC_LEAD_ARROWSPIN, "SpinnerControl", 0x0, 90, 70, 7, 10
@@ -219,7 +219,7 @@ END
 
 IDD_CAD_TABLE DIALOGEX 0, 0, 230, 190
 STYLE DS_SETFONT | WS_CHILD | WS_VISIBLE
-CAPTION "CADTable"
+CAPTION ""
 FONT 9, "Microsoft YaHei UI", 400, 0, 0x86
 BEGIN
     LTEXT           "位置 X", IDC_STATIC, 6, 6, 42, 8
