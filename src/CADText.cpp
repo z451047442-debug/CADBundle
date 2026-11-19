@@ -3,6 +3,7 @@
 #include "CADParamBlockHost.h"
 
 #include <GetCOREInterface.h>
+#include <commctrl.h>
 #include <hold.h>
 #include <iparamm2.h>
 #include <maxapi.h>
@@ -78,7 +79,6 @@ static ParamBlockDesc2 gTextParamBlock(
 
     text_font_name, _T("fontName"), TYPE_STRING, 0, IDS_TEXT_FONT,
         p_default, _T("Microsoft YaHei"),
-        p_ui, TYPE_EDITBOX, IDC_TEXT_FONT,
         p_end,
 
     text_color, _T("textColor"), TYPE_RGBA, 0, IDS_TEXT_COLOR,
@@ -229,142 +229,113 @@ public:
 private:
     std::vector<MSTR>& mNames;
 };
-class CADTextThemeProc : public ParamMap2UserDlgProc
+namespace
 {
-public:
-    explicit CADTextThemeProc(CADText* obj) : mObj(obj) {}
+constexpr UINT_PTR kTextDialogSubclassId = 0x43414454;
 
-    INT_PTR DlgProc(TimeValue t, IParamMap2*, HWND hWnd, UINT msg,
-                    WPARAM wParam, LPARAM) override
+void PopulateFontCombo(HWND hDlg, CADText* obj)
+{
+    IParamBlock2* pblock = obj ? obj->GetParamBlock(0) : nullptr;
+    if (!hDlg || !pblock)
     {
-        if (msg == WM_INITDIALOG)
-        {
-            PopulateText(hWnd);
-            PopulateFonts(hWnd);
-        }
-        else if (msg == WM_COMMAND && HIWORD(wParam) == CBN_SELCHANGE &&
-                 LOWORD(wParam) == IDC_TEXT_FONT)
-        {
-            ApplySelectedFont(hWnd, t);
-            return TRUE;
-        }
-        else if (msg == WM_COMMAND && HIWORD(wParam) == EN_KILLFOCUS &&
-                 LOWORD(wParam) == IDC_TEXT_STRING)
-        {
-            ApplyText(hWnd, t);
-            return TRUE;
-        }
-        return CADApplyThemeColors(msg, wParam);
+        return;
     }
+    Interval valid;
+    const MCHAR* current = pblock->GetStr(text_font_name, 0, valid);
+    const MSTR currentName = current ? current : _T("");
 
-    void DeleteThis() override { delete this; }
+    std::vector<MSTR> names;
+    CADTextFontEnumProc proc(names);
+    theBezFontManager.EnumerateFonts(proc, 0);
 
-private:
-    void PopulateText(HWND hWnd)
+    SendDlgItemMessage(hDlg, IDC_TEXT_FONT, CB_RESETCONTENT, 0, 0);
+    for (size_t i = 0; i < names.size(); ++i)
     {
-        IParamBlock2* pblock = mObj ? mObj->GetParamBlock(0) : nullptr;
-        if (!pblock || !hWnd)
-        {
-            return;
-        }
-        Interval valid;
-        const MCHAR* value = pblock->GetStr(text_string, 0, valid);
-        SetDlgItemText(hWnd, IDC_TEXT_STRING, value ? value : _T(""));
+        SendDlgItemMessage(hDlg, IDC_TEXT_FONT, CB_ADDSTRING, 0,
+                           reinterpret_cast<LPARAM>(names[i].data()));
     }
-
-    void ApplyText(HWND hWnd, TimeValue t)
+    LRESULT index = CB_ERR;
+    if (currentName.Length() > 0)
     {
-        IParamBlock2* pblock = mObj ? mObj->GetParamBlock(0) : nullptr;
-        if (!pblock)
+        index = SendDlgItemMessage(
+            hDlg, IDC_TEXT_FONT, CB_FINDSTRINGEXACT, static_cast<WPARAM>(-1),
+            reinterpret_cast<LPARAM>(currentName.data()));
+        if (index == CB_ERR)
         {
-            return;
-        }
-        TCHAR buffer[1025] = {};
-        GetDlgItemText(hWnd, IDC_TEXT_STRING, buffer, _countof(buffer));
-        theHold.Begin();
-        pblock->SetValue(text_string, t, buffer);
-        theHold.Accept(GetString(IDS_TEXT_STRING));
-        mObj->NotifyDependents(FOREVER, PART_ALL, REFMSG_CHANGE);
-        Interface* ip = GetCOREInterface();
-        if (ip) ip->RedrawViews(t, REDRAW_INTERACTIVE);
-    }
-    void PopulateFonts(HWND hWnd)
-    {
-        if (!mObj || !hWnd)
-        {
-            return;
-        }
-
-        IParamBlock2* pblock = mObj->GetParamBlock(0);
-        Interval valid;
-        const MCHAR* current =
-            pblock ? pblock->GetStr(text_font_name, 0, valid) : nullptr;
-        const MSTR currentName = current ? current : _T("");
-
-        std::vector<MSTR> names;
-        CADTextFontEnumProc proc(names);
-        theBezFontManager.EnumerateFonts(proc, 0);
-
-        SendDlgItemMessage(hWnd, IDC_TEXT_FONT, CB_RESETCONTENT, 0, 0);
-        for (size_t i = 0; i < names.size(); ++i)
-        {
-            SendDlgItemMessage(hWnd, IDC_TEXT_FONT, CB_ADDSTRING, 0,
-                               reinterpret_cast<LPARAM>(names[i].data()));
-        }
-
-        LRESULT index = CB_ERR;
-        if (currentName.Length() > 0)
-        {
-            index = SendDlgItemMessage(
-                hWnd, IDC_TEXT_FONT, CB_FINDSTRINGEXACT,
-                static_cast<WPARAM>(-1),
-                reinterpret_cast<LPARAM>(currentName.data()));
-            if (index == CB_ERR)
-            {
-                index = SendDlgItemMessage(
-                    hWnd, IDC_TEXT_FONT, CB_ADDSTRING, 0,
-                    reinterpret_cast<LPARAM>(currentName.data()));
-            }
-        }
-        if (index != CB_ERR)
-        {
-            SendDlgItemMessage(hWnd, IDC_TEXT_FONT, CB_SETCURSEL,
-                               static_cast<WPARAM>(index), 0);
+            index = SendDlgItemMessage(hDlg, IDC_TEXT_FONT, CB_ADDSTRING, 0,
+                                       reinterpret_cast<LPARAM>(currentName.data()));
         }
     }
-
-    void ApplySelectedFont(HWND hWnd, TimeValue t)
+    if (index != CB_ERR)
     {
-        if (!mObj)
-        {
-            return;
-        }
-        IParamBlock2* pblock = mObj->GetParamBlock(0);
-        if (!pblock)
-        {
-            return;
-        }
-
-        TCHAR buffer[256] = {};
-        GetDlgItemText(hWnd, IDC_TEXT_FONT, buffer, _countof(buffer));
-        theHold.Begin();
-        pblock->SetValue(text_font_name, t, buffer);
-        theHold.Accept(GetString(IDS_TEXT_FONT));
-        mObj->NotifyDependents(FOREVER, PART_ALL, REFMSG_CHANGE);
-        Interface* ip = GetCOREInterface();
-        if (ip) ip->RedrawViews(t, REDRAW_INTERACTIVE);
+        SendDlgItemMessage(hDlg, IDC_TEXT_FONT, CB_SETCURSEL,
+                           static_cast<WPARAM>(index), 0);
     }
+}
 
-    CADText* mObj = nullptr;
-};
+void ApplySelectedFont(HWND hDlg, CADText* obj)
+{
+    IParamBlock2* pblock = obj ? obj->GetParamBlock(0) : nullptr;
+    if (!hDlg || !pblock)
+    {
+        return;
+    }
+    TCHAR buffer[256] = {};
+    GetDlgItemText(hDlg, IDC_TEXT_FONT, buffer, _countof(buffer));
+    Interface* ip = GetCOREInterface();
+    const TimeValue t = ip ? ip->GetTime() : 0;
+    theHold.Begin();
+    pblock->SetValue(text_font_name, t, buffer);
+    theHold.Accept(GetString(IDS_TEXT_FONT));
+    obj->NotifyDependents(FOREVER, PART_ALL, REFMSG_CHANGE);
+    if (ip) ip->RedrawViews(t, REDRAW_INTERACTIVE);
+}
+
+LRESULT CALLBACK TextDialogSubclass(HWND hWnd, UINT msg, WPARAM wParam,
+                                    LPARAM lParam, UINT_PTR, DWORD_PTR refData)
+{
+    if (msg == WM_CTLCOLORDLG || msg == WM_CTLCOLORSTATIC ||
+        msg == WM_CTLCOLORBTN || msg == WM_CTLCOLOREDIT ||
+        msg == WM_CTLCOLORLISTBOX)
+    {
+        const INT_PTR brush = CADApplyThemeColors(msg, wParam);
+        if (brush)
+        {
+            return brush;
+        }
+    }
+    else if (msg == WM_COMMAND && HIWORD(wParam) == CBN_SELCHANGE &&
+             LOWORD(wParam) == IDC_TEXT_FONT)
+    {
+        ApplySelectedFont(hWnd, reinterpret_cast<CADText*>(refData));
+        return 0;
+    }
+    return DefSubclassProc(hWnd, msg, wParam, lParam);
+}
+}
 
 void CADText::BeginEditParams(IObjParam* ip, ULONG flags, Animatable* prev)
 {
     CADBeginAutoUI(GetCADTextDesc(), ip, this, flags, prev);
+    IParamMap2* map = mPBlock ? mPBlock->GetMap(0) : nullptr;
+    HWND hDlg = map ? map->GetHWnd() : nullptr;
+    if (hDlg)
+    {
+        RemoveWindowSubclass(hDlg, TextDialogSubclass, kTextDialogSubclassId);
+        SetWindowSubclass(hDlg, TextDialogSubclass, kTextDialogSubclassId,
+                          reinterpret_cast<DWORD_PTR>(this));
+        PopulateFontCombo(hDlg, this);
+    }
 }
 
 void CADText::EndEditParams(IObjParam* ip, ULONG flags, Animatable* next)
 {
+    IParamMap2* map = mPBlock ? mPBlock->GetMap(0) : nullptr;
+    HWND hDlg = map ? map->GetHWnd() : nullptr;
+    if (hDlg)
+    {
+        RemoveWindowSubclass(hDlg, TextDialogSubclass, kTextDialogSubclassId);
+    }
     CADEndAutoUI(GetCADTextDesc(), ip, this, flags, next);
 }
 

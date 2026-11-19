@@ -161,7 +161,7 @@ BEGIN
     CONTROL         "", IDC_TEXT_SIZE, "CustEdit", WS_TABSTOP, 55, 70, 34, 10
     CONTROL         "", IDC_TEXT_SIZESPIN, "SpinnerControl", 0x0, 90, 70, 7, 10
     LTEXT           "字体", IDC_STATIC, 6, 90, 42, 8
-    CONTROL         "", IDC_TEXT_FONT, "CustEdit", WS_TABSTOP, 55, 88, 165, 12
+    COMBOBOX        IDC_TEXT_FONT, 55, 86, 165, 120, CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     LTEXT           "颜色", IDC_STATIC, 6, 108, 42, 8
     CONTROL         "", IDC_TEXT_COLOR, "ColorSwatch", WS_TABSTOP, 55, 105, 50, 12
 END

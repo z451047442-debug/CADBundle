@@ -81,6 +81,8 @@
 - 追加（同日）：用户反馈“注释、文字不能编辑”与类名标题条不协调。修复：`IDC_TEXT_STRING`/`IDC_TEXT_FONT`/`IDC_LEAD_NOTE` 由 `CustEdit` 改为标准 `EDITTEXT`（`TYPE_EDITBOX` 的正确控件类）；四个参数对话框 `CAPTION` 置空，尝试消除 Max 绘制的浅蓝色类名标题条。构建与冒烟通过；新 DLO SHA-256 `2caf1f98cbea2c198c6c30ddb3aca3e9b14c5be5730eec06ef92f522ade5995a`，待用户重启 Max 复查。
 - 追加 2（同日）：用户反馈标准 EDIT 绑定 `TYPE_EDITBOX` 后仍“可点击但打字无反应”。按 SDK 契约 `TYPE_EDITBOX` 必须为 `CustEdit`，而 CustEdit 路径在该对话框仍未生效。改为**不经自动 UI 绑定**：`text_string`/`leader_note` 移除 `p_ui`，控件使用标准 `EDITTEXT`，在自定义 `ParamMap2UserDlgProc` 中 `WM_INITDIALOG` 填入、`EN_KILLFOCUS` 用 `theHold` 写回并刷新；字体改为 `COMBOBOX` + `BezFontManager::EnumerateFonts`。构建与冒烟通过；DLO SHA-256 `24e399704daf3b964386af98bb170248d7b5703ea820db2f5f71af77d8eea363`。
 
+- 追加 3（同日）：参考项目完全对齐后确认"文字/注释可输入"；问题根因在自定义 DlgProc/手动绑定路径。字体下拉改用**窗口子类化**（`IParamMap2::GetHWnd` + `SetWindowSubclass`）实现：子类仅处理 `WM_CTLCOLOR*` 与 `CBN_SELCHANGE`，其余经 `DefSubclassProc` 转发，不干扰 `CustEdit` 输入。构建与冒烟通过；DLO SHA-256 `798e7b469c079fd7108d72dbc2fedaf0e28ae0c9bb562c9ac2da281fab239d93`。
+
 ## 备注
 
 - 第 2 步两次退回均为“报告格式/完整性”问题，不涉及技术结论争议；专家结论未被项目经理或总裁改写。
