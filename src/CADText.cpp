@@ -3,11 +3,14 @@
 #include "CADParamBlockHost.h"
 
 #include <GetCOREInterface.h>
+#include <hold.h>
 #include <iparamm2.h>
 #include <maxapi.h>
 #include <mouseman.h>
 #include <object.h>
 #include <tchar.h>
+
+#include <vector>
 
 namespace
 {
@@ -75,7 +78,6 @@ static ParamBlockDesc2 gTextParamBlock(
 
     text_font_name, _T("fontName"), TYPE_STRING, 0, IDS_TEXT_FONT,
         p_default, _T("Microsoft YaHei"),
-        p_ui, TYPE_EDITBOX, IDC_TEXT_FONT,
         p_end,
 
     text_color, _T("textColor"), TYPE_RGBA, 0, IDS_TEXT_COLOR,
@@ -212,22 +214,122 @@ CreateMouseCallBack* CADText::GetCreateMouseCallBack()
     return &gTextCreateCB;
 }
 
+class CADTextFontEnumProc : public BezFontEnumProc
+{
+public:
+    explicit CADTextFontEnumProc(std::vector<MSTR>& names) : mNames(names) {}
+
+    BOOL CALLBACK Entry(BezFontInfo& info, LPARAM) override
+    {
+        mNames.push_back(info.name);
+        return TRUE;
+    }
+
+private:
+    std::vector<MSTR>& mNames;
+};
+
 class CADTextThemeProc : public ParamMap2UserDlgProc
 {
 public:
-    INT_PTR DlgProc(TimeValue, IParamMap2*, HWND, UINT msg, WPARAM wParam,
-                    LPARAM) override
+    explicit CADTextThemeProc(CADText* obj) : mObj(obj) {}
+
+    INT_PTR DlgProc(TimeValue t, IParamMap2*, HWND hWnd, UINT msg,
+                    WPARAM wParam, LPARAM) override
     {
+        if (msg == WM_INITDIALOG)
+        {
+            PopulateFonts(hWnd);
+        }
+        else if (msg == WM_COMMAND && HIWORD(wParam) == CBN_SELCHANGE &&
+                 LOWORD(wParam) == IDC_TEXT_FONT)
+        {
+            ApplySelectedFont(hWnd, t);
+            return TRUE;
+        }
         return CADApplyThemeColors(msg, wParam);
     }
 
     void DeleteThis() override { delete this; }
+
+private:
+    void PopulateFonts(HWND hWnd)
+    {
+        if (!mObj || !hWnd)
+        {
+            return;
+        }
+
+        IParamBlock2* pblock = mObj->GetParamBlock(0);
+        Interval valid;
+        const MCHAR* current =
+            pblock ? pblock->GetStr(text_font_name, 0, valid) : nullptr;
+        const MSTR currentName = current ? current : _T("");
+
+        std::vector<MSTR> names;
+        CADTextFontEnumProc proc(names);
+        theBezFontManager.EnumerateFonts(proc, 0);
+
+        SendDlgItemMessage(hWnd, IDC_TEXT_FONT, CB_RESETCONTENT, 0, 0);
+        for (size_t i = 0; i < names.size(); ++i)
+        {
+            SendDlgItemMessage(hWnd, IDC_TEXT_FONT, CB_ADDSTRING, 0,
+                               reinterpret_cast<LPARAM>(names[i].data()));
+        }
+
+        LRESULT index = CB_ERR;
+        if (currentName.Length() > 0)
+        {
+            index = SendDlgItemMessage(
+                hWnd, IDC_TEXT_FONT, CB_FINDSTRINGEXACT,
+                static_cast<WPARAM>(-1),
+                reinterpret_cast<LPARAM>(currentName.data()));
+            if (index == CB_ERR)
+            {
+                index = SendDlgItemMessage(
+                    hWnd, IDC_TEXT_FONT, CB_ADDSTRING, 0,
+                    reinterpret_cast<LPARAM>(currentName.data()));
+            }
+        }
+        if (index != CB_ERR)
+        {
+            SendDlgItemMessage(hWnd, IDC_TEXT_FONT, CB_SETCURSEL,
+                               static_cast<WPARAM>(index), 0);
+        }
+    }
+
+    void ApplySelectedFont(HWND hWnd, TimeValue t)
+    {
+        if (!mObj)
+        {
+            return;
+        }
+        IParamBlock2* pblock = mObj->GetParamBlock(0);
+        if (!pblock)
+        {
+            return;
+        }
+
+        TCHAR buffer[256] = {};
+        GetDlgItemText(hWnd, IDC_TEXT_FONT, buffer, _countof(buffer));
+        theHold.Begin();
+        pblock->SetValue(text_font_name, t, buffer);
+        theHold.Accept(GetString(IDS_TEXT_FONT));
+        mObj->NotifyDependents(FOREVER, PART_ALL, REFMSG_CHANGE);
+        Interface* ip = GetCOREInterface();
+        if (ip)
+        {
+            ip->RedrawViews(t, REDRAW_INTERACTIVE);
+        }
+    }
+
+    CADText* mObj = nullptr;
 };
 
 void CADText::BeginEditParams(IObjParam* ip, ULONG flags, Animatable* prev)
 {
     CADBeginAutoUI(GetCADTextDesc(), ip, this, flags, prev);
-    gTextParamBlock.SetUserDlgProc(new CADTextThemeProc());
+    gTextParamBlock.SetUserDlgProc(new CADTextThemeProc(this));
 }
 
 void CADText::EndEditParams(IObjParam* ip, ULONG flags, Animatable* next)
