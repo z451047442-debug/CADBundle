@@ -48,6 +48,11 @@ BEGIN
     IDS_DIM_LINECOL     "线条颜色"
     IDS_DIM_TEXTCOL     "文字颜色"
     IDS_DIM_PREC        "小数位数"
+    IDS_TEXT_POS        "文字位置"
+    IDS_TEXT_STRING     "文字内容"
+    IDS_TEXT_SIZE       "文字高度"
+    IDS_TEXT_FONT       "字体名称"
+    IDS_TEXT_COLOR      "文字颜色"
 END
 
 IDD_CAD_PANEL DIALOGEX 0, 0, 240, 160
@@ -119,4 +124,30 @@ BEGIN
     CONTROL         "", IDC_DIM_LINECOL, "ColorSwatch", WS_TABSTOP, 70, 123, 50, 12
     LTEXT           "文字颜色", IDC_STATIC, 6, 142, 60, 8
     CONTROL         "", IDC_DIM_TEXTCOL, "ColorSwatch", WS_TABSTOP, 70, 139, 50, 12
+END
+
+IDD_CAD_TEXT DIALOGEX 0, 0, 230, 128
+STYLE DS_SETFONT | WS_CHILD | WS_VISIBLE
+CAPTION "CADText"
+FONT 9, "Microsoft YaHei UI", 400, 0, 0x86
+BEGIN
+    LTEXT           "位置 X", IDC_STATIC, 6, 6, 42, 8
+    CONTROL         "", IDC_TEXT_POSX, "CustEdit", WS_TABSTOP, 55, 4, 34, 10
+    CONTROL         "", IDC_TEXT_POSXSPIN, "SpinnerControl", 0x0, 90, 4, 7, 10
+    LTEXT           "Y", IDC_STATIC, 101, 6, 8, 8
+    CONTROL         "", IDC_TEXT_POSY, "CustEdit", WS_TABSTOP, 109, 4, 34, 10
+    CONTROL         "", IDC_TEXT_POSYSPIN, "SpinnerControl", 0x0, 144, 4, 7, 10
+    LTEXT           "Z", IDC_STATIC, 155, 6, 8, 8
+    CONTROL         "", IDC_TEXT_POSZ, "CustEdit", WS_TABSTOP, 163, 4, 34, 10
+    CONTROL         "", IDC_TEXT_POSZSPIN, "SpinnerControl", 0x0, 198, 4, 7, 10
+
+    LTEXT           "文字", IDC_STATIC, 6, 54, 42, 8
+    CONTROL         "", IDC_TEXT_STRING, "CustEdit", WS_TABSTOP, 55, 52, 165, 12
+    LTEXT           "高度", IDC_STATIC, 6, 72, 42, 8
+    CONTROL         "", IDC_TEXT_SIZE, "CustEdit", WS_TABSTOP, 55, 70, 34, 10
+    CONTROL         "", IDC_TEXT_SIZESPIN, "SpinnerControl", 0x0, 90, 70, 7, 10
+    LTEXT           "字体", IDC_STATIC, 6, 90, 42, 8
+    CONTROL         "", IDC_TEXT_FONT, "CustEdit", WS_TABSTOP, 55, 88, 165, 12
+    LTEXT           "颜色", IDC_STATIC, 6, 108, 42, 8
+    CONTROL         "", IDC_TEXT_COLOR, "ColorSwatch", WS_TABSTOP, 55, 105, 50, 12
 END
