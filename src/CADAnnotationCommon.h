@@ -3,6 +3,7 @@
 #include "CADBundle.h"
 
 #include <GraphicsWindow.h>
+#include <gfx.h>
 #include <maxapi.h>
 #include <object.h>
 
@@ -102,3 +103,61 @@ private:
     GraphicsWindow* mGw = nullptr;
     Matrix3 mOldTransform;
 };
+
+// Screen-space drawing helpers (U13). Callers must hold a GWScreenGuard so
+// the GraphicsWindow transform is identity while wTransPoint/wPolyline/wText
+// run. Values produced by the world-space geometry (sizes already multiplied
+// by CADScreenScale) are projected here and drawn as pixels.
+class GWScreenGuard
+{
+public:
+    explicit GWScreenGuard(GraphicsWindow* gw)
+        : mGw(gw),
+          mOldTransform(gw ? gw->getTransform() : Matrix3()),
+          mOldTextPoint(gw ? gw->GetTextPointSize() : 0.0f)
+    {
+        if (mGw)
+        {
+            mGw->setTransform(Matrix3());
+        }
+    }
+
+    ~GWScreenGuard()
+    {
+        if (mGw)
+        {
+            mGw->SetTextPointSize(mOldTextPoint);
+            mGw->setTransform(mOldTransform);
+        }
+    }
+
+    GWScreenGuard(const GWScreenGuard&) = delete;
+    GWScreenGuard& operator=(const GWScreenGuard&) = delete;
+
+private:
+    GraphicsWindow* mGw = nullptr;
+    Matrix3 mOldTransform;
+    float mOldTextPoint = 0.0f;
+};
+
+// Projects a world point with wTransPoint (perspective clipping aware).
+bool CADWorldToScreen(GraphicsWindow* gw, const Point3& world, IPoint2& screen);
+
+void CADDrawScreenSegment(GraphicsWindow* gw, const IPoint2& a,
+                          const IPoint2& b, const Point3& color);
+
+void CADDrawScreenPolyline(GraphicsWindow* gw, const IPoint2* points, int count,
+                           bool closed, const Point3& color);
+
+// Draws a closed triangular arrow in screen space. tip is the arrow point and
+// toward is any point on the shaft side; length/width are pixels.
+void CADDrawScreenArrow(GraphicsWindow* gw, const IPoint2& tip,
+                        const IPoint2& toward, int lengthPx, int widthPx,
+                        const Point3& color);
+
+void CADDrawScreenText(GraphicsWindow* gw, const IPoint2& anchor,
+                       const MCHAR* text, float pointSize, const Point3& color);
+
+// Screen-space hit test against a set of pixel segments.
+bool CADHitScreenSegments(const HitRegion& region, const IPoint2* a,
+                          const IPoint2* b, int count);

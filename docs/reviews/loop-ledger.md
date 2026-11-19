@@ -64,6 +64,11 @@
 - 影响：原 A3/A4/A5/U3 口径被 U11 覆盖，已在修订文档与验收清单同步；B-23（旧 Utility 关闭路径）随面板移除而失效，**关闭（不再适用）**。
 - 下一步：R2 屏幕空间固定像素绘制；R3 文档与验收口径收尾。
 
+## R2 批次记录（屏幕空间固定像素绘制）
+
+- 2026-11-19 阶段 1：新增屏幕空间公共设施（`CADWorldToScreen`/`CADDrawScreenSegment`/`CADDrawScreenPolyline`/`CADDrawScreenArrow`/`CADDrawScreenText`/`CADHitScreenSegments`/`GWScreenGuard`）；`CADDimension` 的 `Display/HitTest` 改为投影后像素绘制与屏幕线段命中。构建通过；批处理冒烟复跑 29 项全 PASS（fails=0）。文字仍用 BezFont（保持 fontName/fontSize 语义）。
+- 待办：CADText/CADLeader/CADTable 的 Display/HitTest 同类改造；完成后执行像素测量（A6）。
+
 ## 备注
 
 - 第 2 步两次退回均为“报告格式/完整性”问题，不涉及技术结论争议；专家结论未被项目经理或总裁改写。

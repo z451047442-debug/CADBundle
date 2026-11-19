@@ -1,6 +1,5 @@
 #include "CADDimension.h"
 #include "CADAnnotationCommon.h"
-#include "CADBezFontText.h"
 
 #include <gfx.h>
 #include <maxapi.h>
@@ -12,6 +11,7 @@
 namespace
 {
 constexpr float kDegenerateEpsilon = 1.0e-6f;
+constexpr int kMaxHitSegments = 96;
 
 struct DimGeometry
 {
@@ -65,141 +65,140 @@ Point3 ColorToPoint3(const Color& color)
     return Point3(color.r, color.g, color.b);
 }
 
-void DrawPointMarkers(GraphicsWindow* gw, const Point3* points, int count,
-                      float screenScale, const Point3& color)
+bool ProjectObjectPoint(GraphicsWindow* gw, const Matrix3& objectTM,
+                        const Point3& local, IPoint2& screen)
 {
-    if (!gw || !points || count <= 0)
-    {
-        return;
-    }
-
-    const float offset = screenScale > 0.0f ? screenScale * 2.0f : 2.0f;
-    for (int i = 0; i < count; ++i)
-    {
-        if (!CADIsFinite(points[i]))
-        {
-            continue;
-        }
-        const Point3 horizontal[2] = {
-            points[i] + Point3(-offset, 0.0f, 0.0f),
-            points[i] + Point3(offset, 0.0f, 0.0f),
-        };
-        const Point3 vertical[2] = {
-            points[i] + Point3(0.0f, -offset, 0.0f),
-            points[i] + Point3(0.0f, offset, 0.0f),
-        };
-        CADDrawPolyline(gw, horizontal, 2, color);
-        CADDrawPolyline(gw, vertical, 2, color);
-    }
+    return CADWorldToScreen(gw, local * objectTM, screen);
 }
 
-void DrawDimensionLines(GraphicsWindow* gw, const DimGeometry& geometry,
-                        float screenScale, float arrowSize,
-                        float extensionOffset, const Point3& color)
+void AddSegment(const IPoint2& a, const IPoint2& b, IPoint2* segA, IPoint2* segB,
+                int& count, int maxSegments)
 {
-    if (!gw || !geometry.valid || screenScale <= 0.0f)
+    if (count >= maxSegments)
     {
         return;
+    }
+    segA[count] = a;
+    segB[count] = b;
+    ++count;
+}
+
+int ClampInt(int value, int low, int high)
+{
+    return value < low ? low : (value > high ? high : value);
+}
+
+int BuildDimensionScreen(GraphicsWindow* gw, const Matrix3& objectTM,
+                         const DimGeometry& geometry, float screenScale,
+                         float extensionOffset, IPoint2* segA, IPoint2* segB,
+                         int maxSegments, int& segmentCount)
+{
+    segmentCount = 0;
+    if (!geometry.valid)
+    {
+        return 0;
+    }
+
+    IPoint2 p0;
+    IPoint2 p1;
+    IPoint2 d0;
+    IPoint2 d1;
+    if (!ProjectObjectPoint(gw, objectTM, geometry.p0, p0) ||
+        !ProjectObjectPoint(gw, objectTM, geometry.p1, p1) ||
+        !ProjectObjectPoint(gw, objectTM, geometry.dimP0, d0) ||
+        !ProjectObjectPoint(gw, objectTM, geometry.dimP1, d1))
+    {
+        return 0;
     }
 
     const float extension = extensionOffset * screenScale;
-    const Point3 ext0[2] = {
-        geometry.p0,
-        geometry.dimP0 + geometry.normal * extension,
-    };
-    const Point3 ext1[2] = {
-        geometry.p1,
-        geometry.dimP1 + geometry.normal * extension,
-    };
-    CADDrawPolyline(gw, ext0, 2, color);
-    CADDrawPolyline(gw, ext1, 2, color);
+    const Point3 ext0 = geometry.dimP0 + geometry.normal * extension;
+    const Point3 ext1 = geometry.dimP1 + geometry.normal * extension;
+    IPoint2 e0;
+    IPoint2 e1;
+    if (ProjectObjectPoint(gw, objectTM, ext0, e0) &&
+        ProjectObjectPoint(gw, objectTM, ext1, e1))
+    {
+        AddSegment(p0, e0, segA, segB, segmentCount, maxSegments);
+        AddSegment(p1, e1, segA, segB, segmentCount, maxSegments);
+    }
 
-    if (Length(geometry.dimP1 - geometry.dimP0) <= kDegenerateEpsilon)
+    AddSegment(d0, d1, segA, segB, segmentCount, maxSegments);
+    return segmentCount;
+}
+
+void AppendArrowOutline(const IPoint2& tip, const IPoint2& toward,
+                        int lengthPx, int widthPx, IPoint2* segA, IPoint2* segB,
+                        int& count, int maxSegments)
+{
+    if (lengthPx <= 0 || widthPx <= 0)
     {
         return;
     }
 
-    const Point3 dimensionLine[2] = { geometry.dimP0, geometry.dimP1 };
-    CADDrawPolyline(gw, dimensionLine, 2, color);
-
-    const float arrowLength = arrowSize * screenScale;
-    const float arrowWidth = arrowLength * 0.35f;
-    if (arrowLength > 0.0f)
-    {
-        CADDrawArrowHead(gw, geometry.dimP0, geometry.dir,
-                         arrowLength, arrowWidth, geometry.normal, color);
-        const Point3 reverse(-geometry.dir.x, -geometry.dir.y, -geometry.dir.z);
-        CADDrawArrowHead(gw, geometry.dimP1, reverse,
-                         arrowLength, arrowWidth, geometry.normal, color);
-    }
-}
-
-bool DrawCenteredText(GraphicsWindow* gw, ViewExp* vpt, const Matrix3& objectTM,
-                      const DimGeometry& geometry, const MSTR& text,
-                      float heightWorld, const Point3& color,
-                      CADBezFontCache& fontCache)
-{
-    if (!gw || !vpt || !vpt->IsAlive() || !geometry.valid ||
-        text.Length() == 0 || heightWorld <= 0.0f)
-    {
-        return false;
-    }
-
-    if (!fontCache.IsReady() && !fontCache.SetFont(MSTR(_T(""))))
-    {
-        return false;
-    }
-
-    Point3 right;
-    Point3 up;
-    Point3 normal;
-    if (!CADGetBillboardAxes(vpt, right, up, normal))
-    {
-        return false;
-    }
-    (void)up;
-    (void)normal;
-
-    const float textWidth = fontCache.TextWidth(text.data()) *
-                            heightWorld / 1000.0f;
-    const Point3 objectAnchor = (geometry.dimP0 + geometry.dimP1) * 0.5f +
-                                geometry.normal * (heightWorld * 0.6f);
-    const Point3 worldAnchor = objectAnchor * objectTM +
-                               right * (-textWidth * 0.5f);
-    Point3 localAnchor = worldAnchor * Inverse(objectTM);
-    if (!CADIsFinite(localAnchor))
-    {
-        localAnchor = objectAnchor;
-    }
-
-    return CADDrawBezFontText(gw, vpt, objectTM, localAnchor, text.data(),
-                              heightWorld, color, fontCache);
-}
-
-void DrawCoordinateLabels(GraphicsWindow* gw, ViewExp* vpt,
-                          const Matrix3& objectTM, const DimGeometry& geometry,
-                          float textHeight, int precision,
-                          const Point3& color, CADBezFontCache& fontCache)
-{
-    if (!geometry.valid || textHeight <= 0.0f)
+    float dx = static_cast<float>(toward.x - tip.x);
+    float dy = static_cast<float>(toward.y - tip.y);
+    const float length = std::sqrt(dx * dx + dy * dy);
+    if (length <= 1.0e-3f)
     {
         return;
     }
+    dx /= length;
+    dy /= length;
 
-    const Point3 points[3] = { geometry.p0, geometry.p1, geometry.p2 };
-    const MCHAR* names[3] = { _T("P0"), _T("P1"), _T("P2") };
-    for (int i = 0; i < 3; ++i)
+    const float baseX = tip.x + dx * lengthPx;
+    const float baseY = tip.y + dy * lengthPx;
+    const float halfW = widthPx * 0.5f;
+    const float px = -dy * halfW;
+    const float py = dx * halfW;
+
+    const IPoint2 b0(static_cast<int>(baseX + px + 0.5f),
+                     static_cast<int>(baseY + py + 0.5f));
+    const IPoint2 b1(static_cast<int>(baseX - px + 0.5f),
+                     static_cast<int>(baseY - py + 0.5f));
+    AddSegment(tip, b0, segA, segB, count, maxSegments);
+    AddSegment(b0, b1, segA, segB, count, maxSegments);
+    AddSegment(b1, tip, segA, segB, count, maxSegments);
+}
+
+void AppendTextBox(const IPoint2& center, int widthPx, int heightPx,
+                   IPoint2* segA, IPoint2* segB, int& count, int maxSegments)
+{
+    if (widthPx <= 0 || heightPx <= 0)
     {
-        const MSTR x = CADFormatFixed(points[i].x, precision);
-        const MSTR y = CADFormatFixed(points[i].y, precision);
-        const MSTR z = CADFormatFixed(points[i].z, precision);
-        TCHAR buffer[256] = {};
-        _stprintf_s(buffer, _countof(buffer), _T("%s (%s, %s, %s)"),
-                    names[i], x.data(), y.data(), z.data());
-        const Point3 anchor = points[i] + geometry.normal * (textHeight * 0.8f);
-        CADDrawBezFontText(gw, vpt, objectTM, anchor, buffer,
-                           textHeight * 0.6f, color, fontCache);
+        return;
     }
+    const int halfW = widthPx / 2;
+    const int halfH = heightPx / 2;
+    const IPoint2 c0(center.x - halfW, center.y - halfH);
+    const IPoint2 c1(center.x + halfW, center.y - halfH);
+    const IPoint2 c2(center.x + halfW, center.y + halfH);
+    const IPoint2 c3(center.x - halfW, center.y + halfH);
+    AddSegment(c0, c1, segA, segB, count, maxSegments);
+    AddSegment(c1, c2, segA, segB, count, maxSegments);
+    AddSegment(c2, c3, segA, segB, count, maxSegments);
+    AddSegment(c3, c0, segA, segB, count, maxSegments);
+}
+
+void DrawScreenMarker(GraphicsWindow* gw, const IPoint2& p, int radius,
+                      const Point3& color)
+{
+    CADDrawScreenSegment(gw, IPoint2(p.x - radius, p.y),
+                         IPoint2(p.x + radius, p.y), color);
+    CADDrawScreenSegment(gw, IPoint2(p.x, p.y - radius),
+                         IPoint2(p.x, p.y + radius), color);
+}
+
+IPoint2 ScreenTextAnchor(GraphicsWindow* gw, const MCHAR* text,
+                         const IPoint2& center, int offsetX, int offsetY)
+{
+    SIZE extent = {0, 0};
+    if (gw && text && text[0] != 0)
+    {
+        gw->getTextExtents(text, &extent);
+    }
+    return IPoint2(center.x - extent.cx / 2 + offsetX,
+                   center.y - extent.cy / 2 + offsetY);
 }
 }
 
@@ -301,34 +300,84 @@ int CADDimension::Display(TimeValue t, INode* inode, ViewExp* vpt, int flags)
     }
 
     const Matrix3 objectTM = inode->GetObjectTM(t);
-    gw->setTransform(objectTM);
     const float screenScale = CADScreenScale(vpt, objectTM);
     const DimGeometry geometry = BuildGeometry(points[0], points[1], points[2]);
     const Point3 line = ColorToPoint3(lineColor);
+    const Point3 text = ColorToPoint3(textColor);
+
+    GWScreenGuard screenGuard(gw);
+
     if (!geometry.valid)
     {
-        DrawPointMarkers(gw, points, 3, screenScale, line);
+        for (int i = 0; i < 3; ++i)
+        {
+            IPoint2 p;
+            if (ProjectObjectPoint(gw, objectTM, points[i], p))
+            {
+                DrawScreenMarker(gw, p, 3, line);
+            }
+        }
         return 0;
     }
 
-    const Point3 text = ColorToPoint3(textColor);
-    DrawDimensionLines(gw, geometry, screenScale, arrowSize,
-                       extensionOffset, line);
-
-    const float heightWorld = textHeight * screenScale;
-    if (heightWorld > 0.0f)
+    IPoint2 segA[kMaxHitSegments] = {};
+    IPoint2 segB[kMaxHitSegments] = {};
+    int segmentCount = 0;
+    BuildDimensionScreen(gw, objectTM, geometry, screenScale, extensionOffset,
+                         segA, segB, kMaxHitSegments, segmentCount);
+    for (int i = 0; i < segmentCount; ++i)
     {
-        const MSTR distanceText =
-            CADFormatFixed(Length(points[1] - points[0]), precision);
-        DrawCenteredText(gw, vpt, objectTM, geometry, distanceText,
-                         heightWorld, text, mFontCache);
+        CADDrawScreenSegment(gw, segA[i], segB[i], line);
+    }
+
+    IPoint2 d0;
+    IPoint2 d1;
+    if (ProjectObjectPoint(gw, objectTM, geometry.dimP0, d0) &&
+        ProjectObjectPoint(gw, objectTM, geometry.dimP1, d1) &&
+        Length(geometry.dimP1 - geometry.dimP0) > kDegenerateEpsilon)
+    {
+        const int arrowPx = ClampInt(static_cast<int>(arrowSize + 0.5f), 2, 400);
+        const int arrowWidthPx = ClampInt(arrowPx / 3, 1, 200);
+        CADDrawScreenArrow(gw, d0, d1, arrowPx, arrowWidthPx, line);
+        CADDrawScreenArrow(gw, d1, d0, arrowPx, arrowWidthPx, line);
+
+        const float offsetWorld = textHeight * screenScale * 0.6f;
+        const Point3 anchorWorld = (geometry.dimP0 + geometry.dimP1) * 0.5f +
+                                   geometry.normal * offsetWorld;
+        IPoint2 anchor;
+        if (ProjectObjectPoint(gw, objectTM, anchorWorld, anchor))
+        {
+            const MSTR distanceText =
+                CADFormatFixed(Length(points[1] - points[0]), precision);
+            const IPoint2 textAnchor =
+                ScreenTextAnchor(gw, distanceText.data(), anchor, 0, -8);
+            CADDrawScreenText(gw, textAnchor, distanceText.data(), textHeight,
+                              text);
+        }
     }
 
     if (showXYZ)
     {
-        DrawCoordinateLabels(gw, vpt, objectTM, geometry, heightWorld,
-                             precision, text, mFontCache);
+        const MCHAR* names[3] = {_T("P0"), _T("P1"), _T("P2")};
+        for (int i = 0; i < 3; ++i)
+        {
+            IPoint2 p;
+            if (!ProjectObjectPoint(gw, objectTM, points[i], p))
+            {
+                continue;
+            }
+            const MSTR x = CADFormatFixed(points[i].x, precision);
+            const MSTR y = CADFormatFixed(points[i].y, precision);
+            const MSTR z = CADFormatFixed(points[i].z, precision);
+            TCHAR buffer[256] = {};
+            _stprintf_s(buffer, _countof(buffer), _T("%s (%s, %s, %s)"),
+                        names[i], x.data(), y.data(), z.data());
+            const IPoint2 textAnchor =
+                ScreenTextAnchor(gw, buffer, p, 8, -8);
+            CADDrawScreenText(gw, textAnchor, buffer, textHeight * 0.8f, text);
+        }
     }
+
     return 0;
 }
 
@@ -365,53 +414,73 @@ int CADDimension::HitTest(TimeValue t, INode* inode, int type, int crossing,
     {
         return 0;
     }
-
-    GWRndLimitsGuard limits(gw);
-    const DWORD savedLimits = gw->getRndLimits();
-    gw->setRndLimits((savedLimits | GW_PICK) & ~GW_ILLUM);
+    (void)showXYZ;
 
     HitRegion hitRegion;
     MakeHitRegion(hitRegion, type, crossing, 4, p);
-    gw->setHitRegion(&hitRegion);
-    gw->clearHitCode();
 
     const Matrix3 objectTM = inode->GetObjectTM(t);
-    gw->setTransform(objectTM);
     const float screenScale = CADScreenScale(vpt, objectTM);
     const DimGeometry geometry = BuildGeometry(points[0], points[1], points[2]);
-    const Point3 line = ColorToPoint3(lineColor);
+
+    GWScreenGuard screenGuard(gw);
+
+    IPoint2 segA[kMaxHitSegments] = {};
+    IPoint2 segB[kMaxHitSegments] = {};
+    int segmentCount = 0;
+
     if (!geometry.valid)
     {
-        DrawPointMarkers(gw, points, 3, screenScale, line);
-        return gw->checkHitCode();
-    }
-
-    DrawDimensionLines(gw, geometry, screenScale, arrowSize,
-                       extensionOffset, line);
-
-    if (geometry.valid && textHeight > 0.0f)
-    {
-        const MSTR distanceText =
-            CADFormatFixed(Length(points[1] - points[0]), precision);
-        if (!mFontCache.IsReady())
+        for (int i = 0; i < 3; ++i)
         {
-            mFontCache.SetFont(MSTR(_T("")));
+            IPoint2 sp;
+            if (ProjectObjectPoint(gw, objectTM, points[i], sp))
+            {
+                AddSegment(IPoint2(sp.x - 3, sp.y), IPoint2(sp.x + 3, sp.y),
+                           segA, segB, segmentCount, kMaxHitSegments);
+                AddSegment(IPoint2(sp.x, sp.y - 3), IPoint2(sp.x, sp.y + 3),
+                           segA, segB, segmentCount, kMaxHitSegments);
+            }
         }
-        const float heightWorld = textHeight * screenScale;
-        const float widthWorld = mFontCache.TextWidth(distanceText.data()) *
-                                 heightWorld / 1000.0f;
-        const Point3 center = (geometry.dimP0 + geometry.dimP1) * 0.5f +
-                              geometry.normal * (heightWorld * 0.6f);
-        const Point3 halfRight = geometry.dir * (widthWorld * 0.5f);
-        const Point3 halfUp = geometry.normal * (heightWorld * 0.5f);
-        const Point3 corners[4] = {
-            center - halfRight - halfUp,
-            center + halfRight - halfUp,
-            center + halfRight + halfUp,
-            center - halfRight + halfUp,
-        };
-        CADDrawClosedPolyline(gw, corners, 4, line);
+        return CADHitScreenSegments(hitRegion, segA, segB, segmentCount) ? 1 : 0;
     }
 
-    return gw->checkHitCode();
+    BuildDimensionScreen(gw, objectTM, geometry, screenScale, extensionOffset,
+                         segA, segB, kMaxHitSegments, segmentCount);
+
+    IPoint2 d0;
+    IPoint2 d1;
+    if (ProjectObjectPoint(gw, objectTM, geometry.dimP0, d0) &&
+        ProjectObjectPoint(gw, objectTM, geometry.dimP1, d1) &&
+        Length(geometry.dimP1 - geometry.dimP0) > kDegenerateEpsilon)
+    {
+        const int arrowPx = ClampInt(static_cast<int>(arrowSize + 0.5f), 2, 400);
+        const int arrowWidthPx = ClampInt(arrowPx / 3, 1, 200);
+        AppendArrowOutline(d0, d1, arrowPx, arrowWidthPx, segA, segB,
+                           segmentCount, kMaxHitSegments);
+        AppendArrowOutline(d1, d0, arrowPx, arrowWidthPx, segA, segB,
+                           segmentCount, kMaxHitSegments);
+    }
+
+    if (textHeight > 0.0f)
+    {
+        const float offsetWorld = textHeight * screenScale * 0.6f;
+        const Point3 anchorWorld = (geometry.dimP0 + geometry.dimP1) * 0.5f +
+                                   geometry.normal * offsetWorld;
+        IPoint2 anchor;
+        if (ProjectObjectPoint(gw, objectTM, anchorWorld, anchor))
+        {
+            const MSTR distanceText =
+                CADFormatFixed(Length(points[1] - points[0]), precision);
+            const int textWidthPx = ClampInt(
+                static_cast<int>(distanceText.Length() * 0.6f * textHeight +
+                                 0.5f),
+                4, 4000);
+            AppendTextBox(IPoint2(anchor.x, anchor.y - 8), textWidthPx,
+                          static_cast<int>(textHeight + 0.5f), segA, segB,
+                          segmentCount, kMaxHitSegments);
+        }
+    }
+
+    return CADHitScreenSegments(hitRegion, segA, segB, segmentCount) ? 1 : 0;
 }
