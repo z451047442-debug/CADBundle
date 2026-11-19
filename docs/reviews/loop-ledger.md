@@ -72,6 +72,13 @@
 - 验证：Release x64 构建通过；批处理冒烟复跑 29 项全 PASS（fails=0）。
 - 未验证：GUI 视口显示效果、命中体验、透视裁剪边界、DPI；A6 像素测量待人工执行。
 
+## UI 主题修复（2026-11-19）
+
+- 反馈：参数面板颜色与 3ds Max 2027 主界面不搭。
+- 根因：P_AUTO_UI 的 Win32 对话框未处理 `WM_CTLCOLORDLG/STATIC/EDIT/LISTBOX`，静态文本与编辑框使用系统默认浅色画刷。
+- 修复：新增 `CADApplyThemeColors`，使用 `IColorManager::CustSysColor/CustSysColorBrush`（`COLOR_BTNFACE/BTNTEXT/WINDOW/WINDOWTEXT`）；四类参数对话框在 `BeginEditParams` 注册主题 `ParamMap2UserDlgProc`；表格编辑器同步处理颜色消息并设置 ListView 背景/文字色。
+- 验证：Release x64 构建通过；批处理冒烟 29 项全 PASS；最新 DLO 已安装（SHA-256 `d7ab5d080d61866f065f6e50ead3f44d508b2ff7902a4b51cff05e980c283ede`）。GUI 主题效果待用户复查。
+
 ## 备注
 
 - 第 2 步两次退回均为“报告格式/完整性”问题，不涉及技术结论争议；专家结论未被项目经理或总裁改写。

@@ -212,13 +212,27 @@ CreateMouseCallBack* CADText::GetCreateMouseCallBack()
     return &gTextCreateCB;
 }
 
+class CADTextThemeProc : public ParamMap2UserDlgProc
+{
+public:
+    INT_PTR DlgProc(TimeValue, IParamMap2*, HWND, UINT msg, WPARAM wParam,
+                    LPARAM) override
+    {
+        return CADApplyThemeColors(msg, wParam);
+    }
+
+    void DeleteThis() override { delete this; }
+};
+
 void CADText::BeginEditParams(IObjParam* ip, ULONG flags, Animatable* prev)
 {
     CADBeginAutoUI(GetCADTextDesc(), ip, this, flags, prev);
+    gTextParamBlock.SetUserDlgProc(new CADTextThemeProc());
 }
 
 void CADText::EndEditParams(IObjParam* ip, ULONG flags, Animatable* next)
 {
+    gTextParamBlock.SetUserDlgProc(nullptr);
     CADEndAutoUI(GetCADTextDesc(), ip, this, flags, next);
 }
 

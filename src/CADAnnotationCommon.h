@@ -155,6 +155,11 @@ void CADDrawScreenArrow(GraphicsWindow* gw, const IPoint2& tip,
                         const IPoint2& toward, int lengthPx, int widthPx,
                         const Point3& color);
 
+// Applies 3ds Max color-managed system colors to Win32 dialog messages
+// (WM_CTLCOLORDLG/STATIC/BTN/EDIT/LISTBOX). Returns the brush for the
+// message, or 0 when the message is not a color request.
+INT_PTR CADApplyThemeColors(UINT msg, WPARAM wParam);
+
 void CADDrawScreenText(GraphicsWindow* gw, const IPoint2& anchor,
                        const MCHAR* text, float pointSize, const Point3& color);
 

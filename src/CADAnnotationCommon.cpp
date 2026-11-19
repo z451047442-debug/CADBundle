@@ -1,5 +1,7 @@
 #include "CADAnnotationCommon.h"
 
+#include <icolorman.h>
+
 #include <cmath>
 #include <tchar.h>
 
@@ -404,8 +406,7 @@ void CADDrawScreenText(GraphicsWindow* gw, const IPoint2& anchor,
 
 bool CADHitScreenSegments(const HitRegion& region, const IPoint2* a,
                           const IPoint2* b, int count)
-{
-    if (!a || !b || count <= 0)
+{    if (!a || !b || count <= 0)
     {
         return false;
     }
@@ -515,4 +516,40 @@ bool CADHitScreenSegments(const HitRegion& region, const IPoint2* a,
     }
 
     return false;
+}
+
+INT_PTR CADApplyThemeColors(UINT msg, WPARAM wParam)
+{
+    IColorManager* colorManager = GetColorManager();
+    if (!colorManager)
+    {
+        return 0;
+    }
+
+    switch (msg)
+    {
+    case WM_CTLCOLORDLG:
+    case WM_CTLCOLORSTATIC:
+    case WM_CTLCOLORBTN:
+    {
+        HDC hdc = reinterpret_cast<HDC>(wParam);
+        SetTextColor(hdc, colorManager->CustSysColor(COLOR_BTNTEXT));
+        SetBkColor(hdc, colorManager->CustSysColor(COLOR_BTNFACE));
+        return reinterpret_cast<INT_PTR>(
+            colorManager->CustSysColorBrush(COLOR_BTNFACE));
+    }
+
+    case WM_CTLCOLOREDIT:
+    case WM_CTLCOLORLISTBOX:
+    {
+        HDC hdc = reinterpret_cast<HDC>(wParam);
+        SetTextColor(hdc, colorManager->CustSysColor(COLOR_WINDOWTEXT));
+        SetBkColor(hdc, colorManager->CustSysColor(COLOR_WINDOW));
+        return reinterpret_cast<INT_PTR>(
+            colorManager->CustSysColorBrush(COLOR_WINDOW));
+    }
+
+    default:
+        return 0;
+    }
 }

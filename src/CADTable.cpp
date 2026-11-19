@@ -335,6 +335,12 @@ public:
     INT_PTR DlgProc(TimeValue, IParamMap2*, HWND hWnd, UINT msg,
                     WPARAM wParam, LPARAM) override
     {
+        if (msg == WM_CTLCOLORDLG || msg == WM_CTLCOLORSTATIC ||
+            msg == WM_CTLCOLORBTN || msg == WM_CTLCOLOREDIT ||
+            msg == WM_CTLCOLORLISTBOX)
+        {
+            return CADApplyThemeColors(msg, wParam);
+        }
         if (msg == WM_COMMAND && LOWORD(wParam) == IDC_TABLE_EDIT)
         {
             if (mTable)

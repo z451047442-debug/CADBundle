@@ -1,7 +1,9 @@
 #include "CADTableEditor.h"
 #include "CADTable.h"
+#include "CADAnnotationCommon.h"
 
 #include <commctrl.h>
+#include <icolorman.h>
 #include <tchar.h>
 #include <winutil.h>
 
@@ -54,6 +56,13 @@ INT_PTR CADTableEditor::Proc(HWND hdlg, UINT msg, WPARAM wparam, LPARAM lparam)
 {
     switch (msg)
     {
+    case WM_CTLCOLORDLG:
+    case WM_CTLCOLORSTATIC:
+    case WM_CTLCOLORBTN:
+    case WM_CTLCOLOREDIT:
+    case WM_CTLCOLORLISTBOX:
+        return CADApplyThemeColors(msg, wparam);
+
     case WM_INITDIALOG:
         Initialize(hdlg);
         return TRUE;
@@ -122,8 +131,18 @@ void CADTableEditor::Initialize(HWND hdlg)
     InitCommonControlsEx(&commonControls);
 
     mList = GetDlgItem(hdlg, IDC_TABLE_EDIT_LIST);
+    IColorManager* colorManager = GetColorManager();
     if (mList)
     {
+        if (colorManager)
+        {
+            ListView_SetBkColor(mList,
+                                colorManager->CustSysColor(COLOR_WINDOW));
+            ListView_SetTextBkColor(mList,
+                                    colorManager->CustSysColor(COLOR_WINDOW));
+            ListView_SetTextColor(mList,
+                                  colorManager->CustSysColor(COLOR_WINDOWTEXT));
+        }
         ListView_SetExtendedListViewStyle(
             mList, LVS_EX_FULLROWSELECT | LVS_EX_GRIDLINES);
         LVCOLUMN column = {};

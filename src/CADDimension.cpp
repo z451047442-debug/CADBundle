@@ -295,13 +295,27 @@ CreateMouseCallBack* CADDimension::GetCreateMouseCallBack()
     return &gDimensionCreateCB;
 }
 
+class CADDimensionThemeProc : public ParamMap2UserDlgProc
+{
+public:
+    INT_PTR DlgProc(TimeValue, IParamMap2*, HWND, UINT msg, WPARAM wParam,
+                    LPARAM) override
+    {
+        return CADApplyThemeColors(msg, wParam);
+    }
+
+    void DeleteThis() override { delete this; }
+};
+
 void CADDimension::BeginEditParams(IObjParam* ip, ULONG flags, Animatable* prev)
 {
     CADBeginAutoUI(GetCADDimensionDesc(), ip, this, flags, prev);
+    gDimParamBlock.SetUserDlgProc(new CADDimensionThemeProc());
 }
 
 void CADDimension::EndEditParams(IObjParam* ip, ULONG flags, Animatable* next)
 {
+    gDimParamBlock.SetUserDlgProc(nullptr);
     CADEndAutoUI(GetCADDimensionDesc(), ip, this, flags, next);
 }
 
