@@ -202,7 +202,8 @@ int CADLeader::Display(TimeValue t, INode* inode, ViewExp* vpt, int flags)
 
     if (note.Length() > 0 && textHeight > 0.0f)
     {
-        CADDrawScreenText(gw, pt, note.data(), textHeight, text);
+        CADDrawScreenBezFontText(gw, pt, note.data(), textHeight, text,
+                                 mFontCache);
     }
     return 0;
 }
