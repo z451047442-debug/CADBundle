@@ -64,6 +64,28 @@ private:
     std::unordered_map<UINT, std::unique_ptr<CADBezGlyph>> mGlyphs;
 };
 
+// Measures text at a requested pixel height.
+//
+// TextWidth() returns advances in BezFont reference-height (1000) units, so the
+// returned width is already converted to pixels: widthPx = TextWidth * heightPx
+// / 1000. Callers must not apply the /1000 conversion a second time.
+struct CADTextMetrics
+{
+    float widthPx = 0.0f;
+    float heightPx = 0.0f;
+};
+
+CADTextMetrics CADMeasureText(CADBezFontCache& cache, const MCHAR* text,
+                              float pixelHeight);
+
+// Converts a world-space height at worldPos into pixels for the current view.
+// Uses the billboard "up" axis and projects p / p + up * worldHeight, so the
+// result is correct for both perspective and orthographic views. When the
+// viewport is null/dead (for example in 3dsmaxbatch), this falls back to the
+// same 1.0 scale used by CADScreenScale so bbox and hit tests stay stable.
+float CADWorldHeightToPixels(ViewExp* vpt, const Point3& worldPos,
+                             float worldHeight);
+
 // Returns the screen-aligned axes (right, up, view normal) in world space.
 bool CADGetBillboardAxes(ViewExp* vpt, Point3& right, Point3& up,
                          Point3& normal);

@@ -290,6 +290,71 @@ float CADBezFontCache::TextWidth(const MCHAR* text)
     return width;
 }
 
+CADTextMetrics CADMeasureText(CADBezFontCache& cache, const MCHAR* text,
+                              float pixelHeight)
+{
+    CADTextMetrics metrics;
+    if (!text || !*text || !CADIsFinite(pixelHeight) || pixelHeight <= 0.0f)
+    {
+        return metrics;
+    }
+
+    const float widthReference = cache.TextWidth(text);
+    if (!CADIsFinite(widthReference) || widthReference < 0.0f)
+    {
+        return metrics;
+    }
+
+    metrics.widthPx = widthReference * pixelHeight / kBezFontReferenceHeight;
+    metrics.heightPx = pixelHeight;
+    return metrics;
+}
+
+float CADWorldHeightToPixels(ViewExp* vpt, const Point3& worldPos,
+                             float worldHeight)
+{
+    if (!CADIsFinite(worldHeight) || worldHeight <= 0.0f)
+    {
+        return 0.0f;
+    }
+    if (!vpt || !vpt->IsAlive() || !CADIsFinite(worldPos))
+    {
+        return worldHeight;
+    }
+
+    GraphicsWindow* gw = vpt->getGW();
+    if (!gw)
+    {
+        return worldHeight;
+    }
+
+    Point3 right;
+    Point3 up;
+    Point3 normal;
+    if (!CADGetBillboardAxes(vpt, right, up, normal))
+    {
+        return worldHeight;
+    }
+
+    GWScreenGuard screenGuard(gw);
+    IPoint2 base;
+    IPoint2 top;
+    if (!CADWorldToScreen(gw, worldPos, base) ||
+        !CADWorldToScreen(gw, worldPos + up * worldHeight, top))
+    {
+        return worldHeight;
+    }
+
+    const float dx = static_cast<float>(base.x - top.x);
+    const float dy = static_cast<float>(base.y - top.y);
+    const float pixels = std::sqrt(dx * dx + dy * dy);
+    if (!CADIsFinite(pixels) || pixels <= 0.0f)
+    {
+        return worldHeight;
+    }
+    return pixels;
+}
+
 bool CADGetBillboardAxes(ViewExp* vpt, Point3& right, Point3& up,
                          Point3& normal)
 {
