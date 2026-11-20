@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CADBundle.h"
+#include "CADBezFontText.h"
 
 #include <vector>
 
@@ -73,12 +74,13 @@ public:
 private:
     bool GetParams(TimeValue t, Point3& insertPos, int& rows, int& cols,
                    float& cellWidth, float& cellHeight, Color& lineColor,
-                   Color& textColor);
+                   Color& textColor, MSTR& fontName, float& fontSize);
     void EnsureDimensions(TimeValue t);
     void SyncCellsFromMirror(TimeValue t);
     void WriteCellMirror();
 
     IParamBlock2* mPBlock = nullptr;
+    CADBezFontCache mFontCache;
     int mRows = 0;
     int mCols = 0;
     bool mSyncing = false;

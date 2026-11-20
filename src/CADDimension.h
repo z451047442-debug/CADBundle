@@ -66,7 +66,8 @@ private:
     bool GetPoints(TimeValue t, Point3 out[3]);
     bool GetParams(TimeValue t, bool& showXYZ, float& arrowSize,
                    float& textHeight, float& extensionOffset,
-                   Color& lineColor, Color& textColor, int& precision);
+                   Color& lineColor, Color& textColor, int& precision,
+                   MSTR& fontName);
 
     IParamBlock2* mPBlock = nullptr;
     CADBezFontCache mFontCache;

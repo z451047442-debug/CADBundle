@@ -67,6 +67,7 @@
     <ClCompile Include="src\CADTableRender.cpp" />
     <ClCompile Include="src\CADTableEditor.cpp" />
     <ClCompile Include="src\CADAnnotationCommon.cpp" />
+    <ClCompile Include="src\CADScreenDraw.cpp" />
     <ClCompile Include="src\CADBezFontText.cpp" />
     <ClCompile Include="src\CADParamBlockHost.cpp" />
   </ItemGroup>

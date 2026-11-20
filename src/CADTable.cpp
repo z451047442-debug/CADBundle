@@ -26,6 +26,8 @@ enum TableParam
     table_cell_texts,
     table_line_color,
     table_text_color,
+    table_font_name,
+    table_font_size,
 };
 
 constexpr BlockID kTableParams = 0x1004;
@@ -106,6 +108,17 @@ static ParamBlockDesc2 gTableParamBlock(
         p_ui, TYPE_COLORSWATCH, IDC_TABLE_TEXTCOL,
         p_end,
 
+    table_font_name, _T("fontName"), TYPE_STRING, 0, IDS_TABLE_FONT,
+        p_default, _T("Microsoft YaHei"),
+        p_end,
+
+    table_font_size, _T("fontSize"), TYPE_FLOAT, 0, IDS_TABLE_FONTSIZE,
+        p_default, 0.0f,
+        p_range, 0.0f, 1000.0f,
+        p_ui, TYPE_SPINNER, EDITTYPE_FLOAT, IDC_TABLE_FONTSIZE,
+            IDC_TABLE_FONTSIZESPIN, 0.1f,
+        p_end,
+
     p_end);
 
 CADTable::CADTable()
@@ -133,6 +146,13 @@ RefResult CADTable::NotifyRefChanged(const Interval&, RefTargetHandle hTarget,
     {
         EnsureDimensions(0);
         SyncCellsFromMirror(0);
+        IParamMap2* map = mPBlock ? mPBlock->GetMap(0) : nullptr;
+        HWND hDlg = map ? map->GetHWnd() : nullptr;
+        if (hDlg)
+        {
+            CADSyncFontComboSelection(hDlg, IDC_TABLE_FONT, mPBlock,
+                                      table_font_name);
+        }
     }
     return CADNotifyPBlockChange(this, mPBlock, hTarget, partID, message,
                                  propagate, GetCOREInterface(), nullptr);
@@ -242,7 +262,7 @@ void CADTable::SyncCellsFromMirror(TimeValue t)
 
 bool CADTable::GetParams(TimeValue t, Point3& insertPos, int& rows, int& cols,
                          float& cellWidth, float& cellHeight, Color& lineColor,
-                         Color& textColor)
+                         Color& textColor, MSTR& fontName, float& fontSize)
 {
     if (!mPBlock)
     {
@@ -256,10 +276,17 @@ bool CADTable::GetParams(TimeValue t, Point3& insertPos, int& rows, int& cols,
     mPBlock->GetValue(table_cols, t, cols, validity);
     mPBlock->GetValue(table_cell_width, t, cellWidth, validity);
     mPBlock->GetValue(table_cell_height, t, cellHeight, validity);
+    mPBlock->GetValue(table_font_size, t, fontSize, validity);
     lineColor = mPBlock->GetColor(table_line_color, t, validity);
     textColor = mPBlock->GetColor(table_text_color, t, validity);
+    const MCHAR* fontValue = mPBlock->GetStr(table_font_name, t, validity);
+    fontName = fontValue ? fontValue : _T("");
     rows = std::max(kMinRows, std::min(kMaxRows, rows));
     cols = std::max(kMinRows, std::min(kMaxRows, cols));
+    if (!CADIsFinite(fontSize) || fontSize < 0.0f)
+    {
+        fontSize = 0.0f;
+    }
     return CADIsFinite(insertPos) && CADIsFinite(cellWidth) &&
            CADIsFinite(cellHeight);
 }
@@ -343,6 +370,15 @@ LRESULT CALLBACK TableDialogSubclass(HWND hWnd, UINT msg, WPARAM wParam,
             return brush;
         }
     }
+    else if (msg == WM_COMMAND && HIWORD(wParam) == CBN_SELCHANGE &&
+             LOWORD(wParam) == IDC_TABLE_FONT)
+    {
+        CADTable* table = reinterpret_cast<CADTable*>(refData);
+        CADApplyFontCombo(hWnd, IDC_TABLE_FONT,
+                          table ? table->GetParamBlock(0) : nullptr,
+                          table_font_name, table, IDS_TABLE_FONT);
+        return 0;
+    }
     else if (msg == WM_COMMAND && LOWORD(wParam) == IDC_TABLE_EDIT)
     {
         CADTable* table = reinterpret_cast<CADTable*>(refData);
@@ -417,6 +453,7 @@ void CADTable::BeginEditParams(IObjParam* ip, ULONG flags, Animatable* prev)
         RemoveWindowSubclass(hDlg, TableDialogSubclass, kTableDialogSubclassId);
         SetWindowSubclass(hDlg, TableDialogSubclass, kTableDialogSubclassId,
                           reinterpret_cast<DWORD_PTR>(this));
+        CADPopulateFontCombo(hDlg, IDC_TABLE_FONT, mPBlock, table_font_name);
     }
 }
 

@@ -3,6 +3,7 @@
 
 #include <maxchar.h>
 
+#include <algorithm>
 #include <cmath>
 #include <vector>
 
@@ -115,7 +116,7 @@ bool CADBezFontCache::SetFont(const MSTR& requestedName, bool* usedFallback)
         *usedFallback = false;
     }
 
-    if (mHandle && (requestedName.Length() == 0 || requestedName == mFontName))
+    if (mHandle && requestedName == mRequestedName)
     {
         if (usedFallback)
         {
@@ -126,11 +127,21 @@ bool CADBezFontCache::SetFont(const MSTR& requestedName, bool* usedFallback)
 
     Close();
     const bool opened = OpenFirstAvailable(requestedName);
+    mRequestedName = requestedName;
     if (usedFallback)
     {
         *usedFallback = mFallback;
     }
     return opened;
+}
+
+void CADBezFontCache::EnsureFont(const MSTR& requestedName)
+{
+    if (mHandle && requestedName == mRequestedName)
+    {
+        return;
+    }
+    SetFont(requestedName);
 }
 
 void CADBezFontCache::Close()
@@ -145,6 +156,7 @@ void CADBezFontCache::Close()
     }
     mHandle = 0;
     mCjkFallbackHandle = 0;
+    mRequestedName = _T("");
     mFontName = _T("");
     mCjkFallbackFontName = _T("");
     mFallback = false;
@@ -288,6 +300,116 @@ float CADBezFontCache::TextWidth(const MCHAR* text)
         width += (glyph && glyph->valid) ? glyph->width : kMissingGlyphAdvance;
     }
     return width;
+}
+
+CADTextMetrics CADMeasureText(CADBezFontCache& cache, const MCHAR* text,
+                              float pixelHeight)
+{
+    CADTextMetrics metrics;
+    if (!text || !*text || !CADIsFinite(pixelHeight) || pixelHeight <= 0.0f)
+    {
+        return metrics;
+    }
+
+    const float widthReference = cache.TextWidth(text);
+    if (!CADIsFinite(widthReference) || widthReference < 0.0f)
+    {
+        return metrics;
+    }
+
+    metrics.widthPx = widthReference * pixelHeight / kBezFontReferenceHeight;
+    metrics.heightPx = pixelHeight;
+    return metrics;
+}
+
+float CADWorldHeightToPixels(ViewExp* vpt, const Point3& worldPos,
+                             float worldHeight)
+{
+    if (!CADIsFinite(worldHeight) || worldHeight <= 0.0f)
+    {
+        return 0.0f;
+    }
+    if (!vpt || !vpt->IsAlive() || !CADIsFinite(worldPos))
+    {
+        return worldHeight;
+    }
+
+    GraphicsWindow* gw = vpt->getGW();
+    if (!gw)
+    {
+        return worldHeight;
+    }
+
+    Point3 right;
+    Point3 up;
+    Point3 normal;
+    if (!CADGetBillboardAxes(vpt, right, up, normal))
+    {
+        return worldHeight;
+    }
+
+    GWScreenGuard screenGuard(gw);
+    IPoint2 base;
+    IPoint2 top;
+    if (!CADWorldToScreen(gw, worldPos, base) ||
+        !CADWorldToScreen(gw, worldPos + up * worldHeight, top))
+    {
+        return worldHeight;
+    }
+
+    const float dx = static_cast<float>(base.x - top.x);
+    const float dy = static_cast<float>(base.y - top.y);
+    const float pixels = std::sqrt(dx * dx + dy * dy);
+    if (!CADIsFinite(pixels) || pixels <= 0.0f)
+    {
+        return worldHeight;
+    }
+    return pixels;
+}
+
+void CADAddScreenTextBox(ViewExp* vpt, const Matrix3& objectTM,
+                         const Point3& anchorLocal, float leftPx, float topPx,
+                         float rightPx, float bottomPx, float screenScale,
+                         Box3& box)
+{
+    if (!CADIsFinite(anchorLocal) || !CADIsFinite(screenScale) ||
+        screenScale <= 0.0f)
+    {
+        return;
+    }
+
+    const Point3 world = anchorLocal * objectTM;
+    Point3 right;
+    Point3 up;
+    Point3 normal;
+    if (vpt && vpt->IsAlive() &&
+        CADGetBillboardAxes(vpt, right, up, normal))
+    {
+        const float wl = leftPx * screenScale;
+        const float wr = rightPx * screenScale;
+        const float ht = topPx * screenScale;
+        const float hb = bottomPx * screenScale;
+        const Point3 corners[4] = {
+            world + right * wl - up * ht,
+            world + right * wr - up * ht,
+            world + right * wr - up * hb,
+            world + right * wl - up * hb,
+        };
+        const Matrix3 inverseTM = Inverse(objectTM);
+        for (int i = 0; i < 4; ++i)
+        {
+            box += corners[i] * inverseTM;
+        }
+        return;
+    }
+
+    // Conservative fallback for batch/null viewports: cover both axes.
+    const float width = std::max(std::abs(leftPx), std::abs(rightPx)) *
+                        screenScale;
+    const float height = std::max(std::abs(topPx), std::abs(bottomPx)) *
+                         screenScale;
+    box += anchorLocal + Point3(-width, -height, 0.0f);
+    box += anchorLocal + Point3(width, height, 0.0f);
 }
 
 bool CADGetBillboardAxes(ViewExp* vpt, Point3& right, Point3& up,

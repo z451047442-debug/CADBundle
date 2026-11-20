@@ -37,6 +37,11 @@ public:
     // available. Returns false only when no candidate font can be opened.
     bool SetFont(const MSTR& requestedName, bool* usedFallback = nullptr);
 
+    // Reopens the font only when requestedName differs from the last request.
+    // This is required because mFontName stores the *resolved* name, which can
+    // differ from the request when a fallback font handled a missing font.
+    void EnsureFont(const MSTR& requestedName);
+
     void Close();
     void ClearGlyphs();
 
@@ -57,12 +62,45 @@ private:
 
     BEZFONTHANDLE mHandle = 0;
     BEZFONTHANDLE mCjkFallbackHandle = 0;
+    MSTR mRequestedName;
     MSTR mFontName;
     MSTR mCjkFallbackFontName;
     bool mFallback = false;
     bool mMissingGlyph = false;
     std::unordered_map<UINT, std::unique_ptr<CADBezGlyph>> mGlyphs;
 };
+
+// Measures text at a requested pixel height.
+//
+// TextWidth() returns advances in BezFont reference-height (1000) units, so the
+// returned width is already converted to pixels: widthPx = TextWidth * heightPx
+// / 1000. Callers must not apply the /1000 conversion a second time.
+struct CADTextMetrics
+{
+    float widthPx = 0.0f;
+    float heightPx = 0.0f;
+};
+
+CADTextMetrics CADMeasureText(CADBezFontCache& cache, const MCHAR* text,
+                              float pixelHeight);
+
+// Converts a world-space height at worldPos into pixels for the current view.
+// Uses the billboard "up" axis and projects p / p + up * worldHeight, so the
+// result is correct for both perspective and orthographic views. When the
+// viewport is null/dead (for example in 3dsmaxbatch), this falls back to the
+// same 1.0 scale used by CADScreenScale so bbox and hit tests stay stable.
+float CADWorldHeightToPixels(ViewExp* vpt, const Point3& worldPos,
+                             float worldHeight);
+
+// Expands a local-space box with a screen-space text rectangle.
+// The rectangle is in pixels relative to the projected anchor:
+// left/right along screen +X and top/bottom along screen +Y (down).
+// When the viewport is null/dead, a conservative axis-aligned local box is
+// used so bbox and hit tests remain stable in batch mode.
+void CADAddScreenTextBox(ViewExp* vpt, const Matrix3& objectTM,
+                         const Point3& anchorLocal, float leftPx, float topPx,
+                         float rightPx, float bottomPx, float screenScale,
+                         Box3& box);
 
 // Returns the screen-aligned axes (right, up, view normal) in world space.
 bool CADGetBillboardAxes(ViewExp* vpt, Point3& right, Point3& up,

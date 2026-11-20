@@ -3,6 +3,7 @@
 #include "CADParamBlockHost.h"
 
 #include <GetCOREInterface.h>
+#include <commctrl.h>
 #include <iparamm2.h>
 #include <maxapi.h>
 #include <mouseman.h>
@@ -25,6 +26,7 @@ enum DimParam
     dim_linecol,
     dim_textcol,
     dim_prec,
+    dim_font_name,
 };
 
 constexpr BlockID kDimParams = 0x1001;
@@ -127,6 +129,10 @@ static ParamBlockDesc2 gDimParamBlock(
         p_ui, TYPE_SPINNER, EDITTYPE_INT, IDC_DIM_PREC, IDC_DIM_PRECSPIN, 0.1f,
         p_end,
 
+    dim_font_name, _T("fontName"), TYPE_STRING, 0, IDS_DIM_FONT,
+        p_default, _T("Microsoft YaHei"),
+        p_end,
+
     p_end);
 
 CADDimension::CADDimension()
@@ -146,6 +152,17 @@ RefResult CADDimension::NotifyRefChanged(const Interval&, RefTargetHandle hTarge
                                          PartID& partID, RefMessage message,
                                          BOOL propagate)
 {
+    if (message == REFMSG_CHANGE)
+    {
+        mFontCache.ClearGlyphs();
+        IParamMap2* map = mPBlock ? mPBlock->GetMap(0) : nullptr;
+        HWND hDlg = map ? map->GetHWnd() : nullptr;
+        if (hDlg)
+        {
+            CADSyncFontComboSelection(hDlg, IDC_DIM_FONT, mPBlock,
+                                      dim_font_name);
+        }
+    }
     return CADNotifyPBlockChange(this, mPBlock, hTarget, partID, message,
                                  propagate, GetCOREInterface(), nullptr);
 }
@@ -172,7 +189,8 @@ bool CADDimension::GetPoints(TimeValue t, Point3 out[3])
 
 bool CADDimension::GetParams(TimeValue t, bool& showXYZ, float& arrowSize,
                              float& textHeight, float& extensionOffset,
-                             Color& lineColor, Color& textColor, int& precision)
+                             Color& lineColor, Color& textColor, int& precision,
+                             MSTR& fontName)
 {
     if (!mPBlock)
     {
@@ -188,6 +206,8 @@ bool CADDimension::GetParams(TimeValue t, bool& showXYZ, float& arrowSize,
     mPBlock->GetValue(dim_prec, t, precision, validity);
     lineColor = mPBlock->GetColor(dim_linecol, t, validity);
     textColor = mPBlock->GetColor(dim_textcol, t, validity);
+    const MCHAR* fontValue = mPBlock->GetStr(dim_font_name, t, validity);
+    fontName = fontValue ? fontValue : _T("");
     showXYZ = showValue != FALSE;
 
     if (precision < kPrecisionMin)
@@ -295,27 +315,62 @@ CreateMouseCallBack* CADDimension::GetCreateMouseCallBack()
     return &gDimensionCreateCB;
 }
 
-class CADDimensionThemeProc : public ParamMap2UserDlgProc
+namespace
 {
-public:
-    INT_PTR DlgProc(TimeValue, IParamMap2*, HWND, UINT msg, WPARAM wParam,
-                    LPARAM) override
-    {
-        return CADApplyThemeColors(msg, wParam);
-    }
+constexpr UINT_PTR kDimensionDialogSubclassId = 0x43414444;
 
-    void DeleteThis() override { delete this; }
-};
+LRESULT CALLBACK DimensionDialogSubclass(HWND hWnd, UINT msg, WPARAM wParam,
+                                         LPARAM lParam, UINT_PTR,
+                                         DWORD_PTR refData)
+{
+    if (msg == WM_CTLCOLORDLG || msg == WM_CTLCOLORSTATIC ||
+        msg == WM_CTLCOLORBTN || msg == WM_CTLCOLOREDIT ||
+        msg == WM_CTLCOLORLISTBOX)
+    {
+        const INT_PTR brush = CADApplyThemeColors(msg, wParam);
+        if (brush)
+        {
+            return brush;
+        }
+    }
+    else if (msg == WM_COMMAND && HIWORD(wParam) == CBN_SELCHANGE &&
+             LOWORD(wParam) == IDC_DIM_FONT)
+    {
+        CADDimension* dimension = reinterpret_cast<CADDimension*>(refData);
+        CADApplyFontCombo(hWnd, IDC_DIM_FONT,
+                          dimension ? dimension->GetParamBlock(0) : nullptr,
+                          dim_font_name, dimension, IDS_DIM_FONT);
+        return 0;
+    }
+    return DefSubclassProc(hWnd, msg, wParam, lParam);
+}
+}
 
 void CADDimension::BeginEditParams(IObjParam* ip, ULONG flags, Animatable* prev)
 {
     CADBeginAutoUI(GetCADDimensionDesc(), ip, this, flags, prev);
-    gDimParamBlock.SetUserDlgProc(new CADDimensionThemeProc());
+    IParamMap2* map = mPBlock ? mPBlock->GetMap(0) : nullptr;
+    HWND hDlg = map ? map->GetHWnd() : nullptr;
+    if (hDlg)
+    {
+        RemoveWindowSubclass(hDlg, DimensionDialogSubclass,
+                             kDimensionDialogSubclassId);
+        SetWindowSubclass(hDlg, DimensionDialogSubclass,
+                          kDimensionDialogSubclassId,
+                          reinterpret_cast<DWORD_PTR>(this));
+        CADPopulateFontCombo(hDlg, IDC_DIM_FONT, mPBlock, dim_font_name);
+    }
 }
 
 void CADDimension::EndEditParams(IObjParam* ip, ULONG flags, Animatable* next)
 {
-    gDimParamBlock.SetUserDlgProc(nullptr);
+    IParamMap2* map = mPBlock ? mPBlock->GetMap(0) : nullptr;
+    HWND hDlg = map ? map->GetHWnd() : nullptr;
+    if (hDlg)
+    {
+        RemoveWindowSubclass(hDlg, DimensionDialogSubclass,
+                             kDimensionDialogSubclassId);
+    }
     CADEndAutoUI(GetCADDimensionDesc(), ip, this, flags, next);
 }
 

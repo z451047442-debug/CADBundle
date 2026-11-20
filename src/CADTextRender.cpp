@@ -74,15 +74,18 @@ void CADText::GetLocalBoundBox(TimeValue t, INode* inode, ViewExp* vpt,
     const Matrix3 objectTM = inode ? inode->GetObjectTM(t) : Matrix3();
     const float screenScale = vpt ? CADScreenScale(vpt, objectTM) : 1.0f;
     const float height = fontSize * screenScale;
-    if (!mFontCache.IsReady())
-    {
-        mFontCache.SetFont(fontName);
-    }
-    const float width = mFontCache.TextWidth(SanitizeText(text).data()) *
-                        height / 1000.0f;
-    const float boxWidth = width > 0.0f ? width : height * 0.5f;
+    mFontCache.EnsureFont(fontName);
+    const MSTR displayText = SanitizeText(text);
+    const float pixelHeight =
+        screenScale > 0.0f ? height / screenScale : height;
+    const CADTextMetrics metrics =
+        CADMeasureText(mFontCache, displayText.data(), pixelHeight);
+    const float pixelWidth = metrics.widthPx > 0.0f
+                                 ? metrics.widthPx
+                                 : pixelHeight * 0.5f;
     box += position;
-    box += position + Point3(boxWidth, height, 0.0f);
+    CADAddScreenTextBox(vpt, objectTM, position, 0.0f, -metrics.heightPx,
+                        pixelWidth, 0.0f, screenScale, box);
     box = CADExpandBox(box, height * 0.2f);
 }
 
@@ -142,7 +145,7 @@ int CADText::Display(TimeValue t, INode* inode, ViewExp* vpt, int flags)
     const float screenScale = CADScreenScale(vpt, objectTM);
     const Point3 textColor(color.r, color.g, color.b);
     const float height = fontSize * screenScale;
-    mFontCache.SetFont(fontName);
+    mFontCache.EnsureFont(fontName);
 
     const MSTR displayText = SanitizeText(text);
     if (displayText.Length() == 0)
@@ -192,7 +195,7 @@ int CADText::HitTest(TimeValue t, INode* inode, int type, int crossing,
     const Matrix3 objectTM = inode->GetObjectTM(t);
     const float screenScale = CADScreenScale(vpt, objectTM);
     const float height = fontSize * screenScale;
-    mFontCache.SetFont(fontName);
+    mFontCache.EnsureFont(fontName);
     const MSTR displayText = SanitizeText(text);
 
     GWScreenGuard screenGuard(gw);
@@ -225,7 +228,7 @@ int CADText::HitTest(TimeValue t, INode* inode, int type, int crossing,
     (void)normal;
 
     const float width =
-        mFontCache.TextWidth(displayText.data()) * height / 1000.0f;
+        CADMeasureText(mFontCache, displayText.data(), height).widthPx;
     const Point3 origin = position * objectTM;
     const Point3 corners[4] = {
         origin,
