@@ -41,3 +41,9 @@ void CADPopulateFontCombo(HWND hDlg, int controlId, IParamBlock2* pblock,
 // and redraws the viewports.
 void CADApplyFontCombo(HWND hDlg, int controlId, IParamBlock2* pblock,
                        int paramId, ReferenceMaker* owner, int stringId);
+
+// Re-selects the dropdown entry that matches pblock[paramId]. Used after
+// undo/redo or any programmatic pblock change, where ParamMap2 cannot update
+// this custom (non-p_ui) combobox itself.
+void CADSyncFontComboSelection(HWND hDlg, int controlId,
+                               IParamBlock2* pblock, int paramId);

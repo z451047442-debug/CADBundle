@@ -152,6 +152,17 @@ RefResult CADDimension::NotifyRefChanged(const Interval&, RefTargetHandle hTarge
                                          PartID& partID, RefMessage message,
                                          BOOL propagate)
 {
+    if (message == REFMSG_CHANGE)
+    {
+        mFontCache.ClearGlyphs();
+        IParamMap2* map = mPBlock ? mPBlock->GetMap(0) : nullptr;
+        HWND hDlg = map ? map->GetHWnd() : nullptr;
+        if (hDlg)
+        {
+            CADSyncFontComboSelection(hDlg, IDC_DIM_FONT, mPBlock,
+                                      dim_font_name);
+        }
+    }
     return CADNotifyPBlockChange(this, mPBlock, hTarget, partID, message,
                                  propagate, GetCOREInterface(), nullptr);
 }

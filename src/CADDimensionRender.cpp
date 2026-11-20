@@ -225,15 +225,11 @@ void CADDimension::GetLocalBoundBox(TimeValue t, INode* inode, ViewExp* vpt,
     MSTR fontName;
     GetParams(t, showXYZ, arrowSize, textHeight, extensionOffset,
               lineColor, textColor, precision, fontName);
-    (void)showXYZ;
     (void)lineColor;
     (void)textColor;
     (void)precision;
 
-    if (mFontCache.FontName() != fontName)
-    {
-        mFontCache.SetFont(fontName);
-    }
+    mFontCache.EnsureFont(fontName);
 
     const float margin = (arrowSize + extensionOffset) * screenScale;
     Box3 dimensionBox = CADExpandBox(CADBoxFromPoints(points, 3), margin);
@@ -251,12 +247,17 @@ void CADDimension::GetLocalBoundBox(TimeValue t, INode* inode, ViewExp* vpt,
         const float offsetWorld = textHeight * screenScale * 0.6f;
         const Point3 anchorWorld = (geometry.dimP0 + geometry.dimP1) * 0.5f +
                                    geometry.normal * offsetWorld;
-        const float widthWorld = metrics.widthPx * screenScale;
-        const float heightWorld = metrics.heightPx * screenScale;
-        dimensionBox += anchorWorld;
-        dimensionBox += anchorWorld + Point3(widthWorld, heightWorld, 0.0f);
-        dimensionBox += anchorWorld + Point3(widthWorld, 0.0f, 0.0f);
-        dimensionBox += anchorWorld + Point3(0.0f, heightWorld, 0.0f);
+        CADAddScreenTextBox(vpt, objectTM, anchorWorld,
+                            -metrics.widthPx * 0.5f,
+                            -metrics.heightPx * 0.5f - 8.0f,
+                            metrics.widthPx * 0.5f,
+                            metrics.heightPx * 0.5f - 8.0f,
+                            screenScale, dimensionBox);
+    }
+    if (showXYZ)
+    {
+        dimensionBox = CADExpandBox(dimensionBox,
+                                    textHeight * 1.6f * screenScale);
     }
     box = dimensionBox;
     if (box.pmin.x > box.pmax.x)
@@ -327,10 +328,7 @@ int CADDimension::Display(TimeValue t, INode* inode, ViewExp* vpt, int flags)
         return 0;
     }
 
-    if (mFontCache.FontName() != fontName)
-    {
-        mFontCache.SetFont(fontName);
-    }
+    mFontCache.EnsureFont(fontName);
 
     const Matrix3 objectTM = inode->GetObjectTM(t);
     const float screenScale = CADScreenScale(vpt, objectTM);
@@ -461,10 +459,7 @@ int CADDimension::HitTest(TimeValue t, INode* inode, int type, int crossing,
     HitRegion hitRegion;
     MakeHitRegion(hitRegion, type, crossing, 4, p);
 
-    if (mFontCache.FontName() != fontName)
-    {
-        mFontCache.SetFont(fontName);
-    }
+    mFontCache.EnsureFont(fontName);
 
     const Matrix3 objectTM = inode->GetObjectTM(t);
     const float screenScale = CADScreenScale(vpt, objectTM);

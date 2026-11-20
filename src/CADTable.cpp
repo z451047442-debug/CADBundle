@@ -146,6 +146,13 @@ RefResult CADTable::NotifyRefChanged(const Interval&, RefTargetHandle hTarget,
     {
         EnsureDimensions(0);
         SyncCellsFromMirror(0);
+        IParamMap2* map = mPBlock ? mPBlock->GetMap(0) : nullptr;
+        HWND hDlg = map ? map->GetHWnd() : nullptr;
+        if (hDlg)
+        {
+            CADSyncFontComboSelection(hDlg, IDC_TABLE_FONT, mPBlock,
+                                      table_font_name);
+        }
     }
     return CADNotifyPBlockChange(this, mPBlock, hTarget, partID, message,
                                  propagate, GetCOREInterface(), nullptr);

@@ -97,6 +97,37 @@ void CADApplyFontCombo(HWND hDlg, int controlId, IParamBlock2* pblock,
     }
 }
 
+void CADSyncFontComboSelection(HWND hDlg, int controlId, IParamBlock2* pblock,
+                               int paramId)
+{
+    if (!hDlg || !pblock)
+    {
+        return;
+    }
+
+    Interval valid;
+    const MCHAR* current = pblock->GetStr(paramId, 0, valid);
+    const MSTR currentName = current ? current : _T("");
+    if (currentName.Length() == 0)
+    {
+        return;
+    }
+
+    LRESULT index = SendDlgItemMessage(
+        hDlg, controlId, CB_FINDSTRINGEXACT, static_cast<WPARAM>(-1),
+        reinterpret_cast<LPARAM>(currentName.data()));
+    if (index == CB_ERR)
+    {
+        index = SendDlgItemMessage(hDlg, controlId, CB_ADDSTRING, 0,
+                                   reinterpret_cast<LPARAM>(currentName.data()));
+    }
+    if (index != CB_ERR)
+    {
+        SendDlgItemMessage(hDlg, controlId, CB_SETCURSEL,
+                           static_cast<WPARAM>(index), 0);
+    }
+}
+
 void CADMakeAutoParamBlocks(ReferenceMaker* owner, ClassDesc2* desc)
 {
     if (owner && desc)

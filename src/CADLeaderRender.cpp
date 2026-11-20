@@ -118,10 +118,7 @@ void CADLeader::GetLocalBoundBox(TimeValue t, INode* inode, ViewExp* vpt,
         return;
     }
 
-    if (mFontCache.FontName() != fontName)
-    {
-        mFontCache.SetFont(fontName);
-    }
+    mFontCache.EnsureFont(fontName);
     const Matrix3 objectTM = inode ? inode->GetObjectTM(t) : Matrix3();
     const float screenScale = vpt ? CADScreenScale(vpt, objectTM) : 1.0f;
     const Point3 points[3] = { start, elbow, textPos };
@@ -130,12 +127,9 @@ void CADLeader::GetLocalBoundBox(TimeValue t, INode* inode, ViewExp* vpt,
     if (note.Length() > 0 && textHeight > 0.0f)
     {
         const CADTextMetrics metrics = MeasureNote(mFontCache, note, textHeight);
-        const float widthWorld = metrics.widthPx * screenScale;
-        const float heightWorld = metrics.heightPx * screenScale;
-        textBox += textPos;
-        textBox += textPos + Point3(widthWorld, heightWorld, 0.0f);
-        textBox += textPos + Point3(widthWorld, 0.0f, 0.0f);
-        textBox += textPos + Point3(0.0f, heightWorld, 0.0f);
+        CADAddScreenTextBox(vpt, objectTM, textPos, 0.0f, 0.0f,
+                            metrics.widthPx, metrics.heightPx, screenScale,
+                            textBox);
     }
     box = textBox;
     if (box.pmin.x > box.pmax.x)
@@ -201,10 +195,7 @@ int CADLeader::Display(TimeValue t, INode* inode, ViewExp* vpt, int flags)
         return 0;
     }
 
-    if (mFontCache.FontName() != fontName)
-    {
-        mFontCache.SetFont(fontName);
-    }
+    mFontCache.EnsureFont(fontName);
 
     const Matrix3 objectTM = inode->GetObjectTM(t);
     const Point3 line(lineColor.r, lineColor.g, lineColor.b);
@@ -270,10 +261,7 @@ int CADLeader::HitTest(TimeValue t, INode* inode, int type, int crossing,
         return 0;
     }
 
-    if (mFontCache.FontName() != fontName)
-    {
-        mFontCache.SetFont(fontName);
-    }
+    mFontCache.EnsureFont(fontName);
 
     HitRegion hitRegion;
     MakeHitRegion(hitRegion, type, crossing, 4, p);

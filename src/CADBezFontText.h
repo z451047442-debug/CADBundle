@@ -37,6 +37,11 @@ public:
     // available. Returns false only when no candidate font can be opened.
     bool SetFont(const MSTR& requestedName, bool* usedFallback = nullptr);
 
+    // Reopens the font only when requestedName differs from the last request.
+    // This is required because mFontName stores the *resolved* name, which can
+    // differ from the request when a fallback font handled a missing font.
+    void EnsureFont(const MSTR& requestedName);
+
     void Close();
     void ClearGlyphs();
 
@@ -57,6 +62,7 @@ private:
 
     BEZFONTHANDLE mHandle = 0;
     BEZFONTHANDLE mCjkFallbackHandle = 0;
+    MSTR mRequestedName;
     MSTR mFontName;
     MSTR mCjkFallbackFontName;
     bool mFallback = false;
@@ -85,6 +91,16 @@ CADTextMetrics CADMeasureText(CADBezFontCache& cache, const MCHAR* text,
 // same 1.0 scale used by CADScreenScale so bbox and hit tests stay stable.
 float CADWorldHeightToPixels(ViewExp* vpt, const Point3& worldPos,
                              float worldHeight);
+
+// Expands a local-space box with a screen-space text rectangle.
+// The rectangle is in pixels relative to the projected anchor:
+// left/right along screen +X and top/bottom along screen +Y (down).
+// When the viewport is null/dead, a conservative axis-aligned local box is
+// used so bbox and hit tests remain stable in batch mode.
+void CADAddScreenTextBox(ViewExp* vpt, const Matrix3& objectTM,
+                         const Point3& anchorLocal, float leftPx, float topPx,
+                         float rightPx, float bottomPx, float screenScale,
+                         Box3& box);
 
 // Returns the screen-aligned axes (right, up, view normal) in world space.
 bool CADGetBillboardAxes(ViewExp* vpt, Point3& right, Point3& up,

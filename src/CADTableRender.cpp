@@ -127,10 +127,7 @@ void CADTable::GetLocalBoundBox(TimeValue t, INode* inode, ViewExp* vpt,
         return;
     }
 
-    if (mFontCache.FontName() != fontName)
-    {
-        mFontCache.SetFont(fontName);
-    }
+    mFontCache.EnsureFont(fontName);
 
     const Matrix3 objectTM = inode ? inode->GetObjectTM(t) : Matrix3();
     const float screenScale = vpt ? CADScreenScale(vpt, objectTM) : 1.0f;
@@ -141,24 +138,29 @@ void CADTable::GetLocalBoundBox(TimeValue t, INode* inode, ViewExp* vpt,
 
     const float pointSize = ResolveTablePointSize(cellHeight, fontSize);
     EnsureFont(mFontCache);
-    for (int row = 0; row < rows; ++row)
+    if (rows * cols <= 400)
     {
-        for (int col = 0; col < cols; ++col)
+        for (int row = 0; row < rows; ++row)
         {
-            const size_t index = static_cast<size_t>(row) * cols + col;
-            if (index >= mCells.size() || mCells[index].Length() == 0)
+            for (int col = 0; col < cols; ++col)
             {
-                continue;
+                const size_t index = static_cast<size_t>(row) * cols + col;
+                if (index >= mCells.size() || mCells[index].Length() == 0)
+                {
+                    continue;
+                }
+                const MSTR display = FitCellText(
+                    mFontCache, mCells[index], cellWidth, pointSize);
+                const CADTextMetrics metrics =
+                    CADMeasureText(mFontCache, display.data(), pointSize);
+                const Point3 textAnchor =
+                    insertPos + Point3((col + 0.1f) * cellWidth * screenScale,
+                                       (row + 0.7f) * cellHeight * screenScale,
+                                       0.0f);
+                CADAddScreenTextBox(vpt, objectTM, textAnchor, 0.0f, 0.0f,
+                                    metrics.widthPx, metrics.heightPx,
+                                    screenScale, box);
             }
-            const CADTextMetrics metrics =
-                CADMeasureText(mFontCache, mCells[index].data(), pointSize);
-            const float textWidth = metrics.widthPx * screenScale;
-            const float textHeight = metrics.heightPx * screenScale;
-            const Point3 cellOrigin =
-                insertPos + Point3(col * cellWidth * screenScale,
-                                   row * cellHeight * screenScale, 0.0f);
-            box += cellOrigin;
-            box += cellOrigin + Point3(textWidth, textHeight, 0.0f);
         }
     }
 
@@ -222,10 +224,7 @@ int CADTable::Display(TimeValue t, INode* inode, ViewExp* vpt, int flags)
         return 0;
     }
 
-    if (mFontCache.FontName() != fontName)
-    {
-        mFontCache.SetFont(fontName);
-    }
+    mFontCache.EnsureFont(fontName);
 
     const Matrix3 objectTM = inode->GetObjectTM(t);
     const float screenScale = CADScreenScale(vpt, objectTM);
@@ -309,10 +308,7 @@ int CADTable::HitTest(TimeValue t, INode* inode, int type, int crossing,
     HitRegion hitRegion;
     MakeHitRegion(hitRegion, type, crossing, 4, p);
 
-    if (mFontCache.FontName() != fontName)
-    {
-        mFontCache.SetFont(fontName);
-    }
+    mFontCache.EnsureFont(fontName);
 
     const Matrix3 objectTM = inode->GetObjectTM(t);
     const float screenScale = CADScreenScale(vpt, objectTM);
