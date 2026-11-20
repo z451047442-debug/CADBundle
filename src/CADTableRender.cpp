@@ -147,12 +147,6 @@ void CADTable::GetLocalBoundBox(TimeValue t, INode* inode, ViewExp* vpt,
     box += insertPos;
     box += insertPos + Point3(width, height, 0.0f);
 
-    const float pointSize =
-        sizeMode == 1
-            ? CADWorldHeightToPixels(vpt, insertPos * objectTM,
-                                     ResolveTableWorldTextHeight(cellHeight,
-                                                                 fontSize))
-            : ResolveTablePointSize(cellHeight, fontSize);
     const float maxCellPixels =
         sizeMode == 1
             ? (screenScale > 0.0f ? cellWidth / screenScale : cellWidth)
@@ -169,16 +163,37 @@ void CADTable::GetLocalBoundBox(TimeValue t, INode* inode, ViewExp* vpt,
                 {
                     continue;
                 }
-                const MSTR display = FitCellText(
-                    mFontCache, mCells[index], maxCellPixels, pointSize);
-                const CADTextMetrics metrics =
-                    CADMeasureText(mFontCache, display.data(), pointSize);
                 const Point3 textAnchor =
                     insertPos + Point3((col + 0.1f) * widthWorld,
                                        (row + 0.7f) * heightWorld, 0.0f);
-                CADAddScreenTextBox(vpt, objectTM, textAnchor, 0.0f, 0.0f,
-                                    metrics.widthPx, metrics.heightPx,
-                                    screenScale, box);
+                if (sizeMode == 1)
+                {
+                    const float worldTextHeight =
+                        ResolveTableWorldTextHeight(cellHeight, fontSize);
+                    const float measureHeight =
+                        screenScale > 0.0f ? worldTextHeight / screenScale
+                                           : worldTextHeight;
+                    const MSTR display = FitCellText(
+                        mFontCache, mCells[index], maxCellPixels,
+                        measureHeight);
+                    const CADTextMetrics metrics = CADMeasureText(
+                        mFontCache, display.data(), measureHeight);
+                    const float textWidthWorld = metrics.widthPx * screenScale;
+                    CADAddWorldTextBox(vpt, objectTM, textAnchor, 0.0f, 0.0f,
+                                       textWidthWorld, worldTextHeight, box);
+                }
+                else
+                {
+                    const float pointSize =
+                        ResolveTablePointSize(cellHeight, fontSize);
+                    const MSTR display = FitCellText(
+                        mFontCache, mCells[index], maxCellPixels, pointSize);
+                    const CADTextMetrics metrics = CADMeasureText(
+                        mFontCache, display.data(), pointSize);
+                    CADAddScreenTextBox(vpt, objectTM, textAnchor, 0.0f, 0.0f,
+                                        metrics.widthPx, metrics.heightPx,
+                                        screenScale, box);
+                }
             }
         }
     }

@@ -275,8 +275,9 @@ void CADDimension::GetLocalBoundBox(TimeValue t, INode* inode, ViewExp* vpt,
     }
     if (showXYZ)
     {
-        dimensionBox = CADExpandBox(dimensionBox,
-                                    textHeight * 1.6f * screenScale);
+        dimensionBox = CADExpandBox(
+            dimensionBox,
+            textHeight * 1.6f * (sizeMode == 1 ? 1.0f : screenScale));
     }
     box = dimensionBox;
     if (box.pmin.x > box.pmax.x)
