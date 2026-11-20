@@ -1,12 +1,15 @@
 #include "CADTable.h"
 #include "CADAnnotationCommon.h"
 
+#include <GetCOREInterface.h>
 #include <gfx.h>
+#include <log.h>
 #include <maxapi.h>
 #include <object.h>
 #include <tchar.h>
 
 #include <algorithm>
+#include <cmath>
 
 namespace
 {
@@ -34,6 +37,72 @@ float ResolveTableWorldTextHeight(float cellHeight, float fontSize)
     const float requested =
         fontSize > 0.0f ? fontSize : cellHeight * kTableTextScale;
     return std::min(std::max(requested, 0.01f), 10000.0f);
+}
+
+int EstimateVisibleCells(GraphicsWindow* gw, const Matrix3& objectTM,
+                         const Point3& insertPos, int rows, int cols,
+                         float widthWorld, float heightWorld,
+                         float cellWidthPx, float cellHeightPx)
+{
+    if (!gw || rows <= 0 || cols <= 0)
+    {
+        return 0;
+    }
+
+    const int viewWidth = gw->getWinSizeX();
+    const int viewHeight = gw->getWinSizeY();
+    if (viewWidth <= 1 || viewHeight <= 1)
+    {
+        return 0;
+    }
+
+    const Point3 corners[4] = {
+        insertPos,
+        insertPos + Point3(cols * widthWorld, 0.0f, 0.0f),
+        insertPos + Point3(cols * widthWorld, rows * heightWorld, 0.0f),
+        insertPos + Point3(0.0f, rows * heightWorld, 0.0f),
+    };
+    IPoint2 screen[4] = {};
+    for (int i = 0; i < 4; ++i)
+    {
+        if (!CADWorldToScreen(gw, corners[i] * objectTM, screen[i]))
+        {
+            return 0;
+        }
+    }
+
+    int minX = screen[0].x;
+    int maxX = screen[0].x;
+    int minY = screen[0].y;
+    int maxY = screen[0].y;
+    for (int i = 1; i < 4; ++i)
+    {
+        minX = std::min(minX, screen[i].x);
+        maxX = std::max(maxX, screen[i].x);
+        minY = std::min(minY, screen[i].y);
+        maxY = std::max(maxY, screen[i].y);
+    }
+    minX = std::max(minX, 0);
+    minY = std::max(minY, 0);
+    maxX = std::min(maxX, viewWidth - 1);
+    maxY = std::min(maxY, viewHeight - 1);
+    if (maxX <= minX || maxY <= minY)
+    {
+        return 0;
+    }
+
+    if (cellWidthPx <= 0.0f || cellHeightPx <= 0.0f)
+    {
+        return rows * cols;
+    }
+
+    int visibleCols = static_cast<int>(
+        std::ceil(static_cast<float>(maxX - minX + 1) / cellWidthPx));
+    int visibleRows = static_cast<int>(
+        std::ceil(static_cast<float>(maxY - minY + 1) / cellHeightPx));
+    visibleCols = std::max(1, std::min(cols, visibleCols));
+    visibleRows = std::max(1, std::min(rows, visibleRows));
+    return visibleCols * visibleRows;
 }
 
 void EnsureFont(CADBezFontCache& cache)
@@ -271,6 +340,51 @@ int CADTable::Display(TimeValue t, INode* inode, ViewExp* vpt, int flags)
 
     GWScreenGuard screenGuard(gw);
 
+    const float cellWidthPx =
+        sizeMode == 1
+            ? (screenScale > 0.0f ? cellWidth / screenScale : cellWidth)
+            : cellWidth;
+    const float cellHeightPx =
+        sizeMode == 1
+            ? (screenScale > 0.0f ? cellHeight / screenScale : cellHeight)
+            : cellHeight;
+    const int visibleCells = EstimateVisibleCells(
+        gw, objectTM, insertPos, rows, cols, widthWorld, heightWorld,
+        cellWidthPx, cellHeightPx);
+    const float pixelHeightAtInsert =
+        sizeMode == 1
+            ? CADWorldHeightToPixels(
+                  vpt, insertPos * objectTM,
+                  ResolveTableWorldTextHeight(cellHeight, fontSize))
+            : ResolveTablePointSize(cellHeight, fontSize);
+    const bool wasFallback = mUseFontFallback;
+    if (!mUseFontFallback)
+    {
+        if (visibleCells > 480 || pixelHeightAtInsert < 8.0f)
+        {
+            mUseFontFallback = true;
+            ++mFallbackEntries;
+        }
+    }
+    else if (visibleCells <= 360 && pixelHeightAtInsert >= 10.0f)
+    {
+        mUseFontFallback = false;
+    }
+    mLastVisibleCells = visibleCells;
+    if (wasFallback != mUseFontFallback)
+    {
+        Interface* ip = GetCOREInterface();
+        LogSys* log = ip ? ip->Log() : nullptr;
+        if (log)
+        {
+            log->LogEntry(
+                SYSLOG_INFO, FALSE, MSTR(_T("CADTable")),
+                _T("font path=%s visible=%d px=%.1f entries=%d"),
+                mUseFontFallback ? _T("fallback") : _T("bezfont"),
+                visibleCells, pixelHeightAtInsert, mFallbackEntries);
+        }
+    }
+
     IPoint2 segA[kMaxGridSegments] = {};
     IPoint2 segB[kMaxGridSegments] = {};
     const int segmentCount =
@@ -281,10 +395,6 @@ int CADTable::Display(TimeValue t, INode* inode, ViewExp* vpt, int flags)
         CADDrawScreenSegment(gw, segA[i], segB[i], line);
     }
 
-    const float pointSize =
-        sizeMode == 1
-            ? 0.0f
-            : ResolveTablePointSize(cellHeight, fontSize);
     const float maxCellPixels =
         sizeMode == 1
             ? (screenScale > 0.0f ? cellWidth / screenScale : cellWidth)
@@ -309,17 +419,30 @@ int CADTable::Display(TimeValue t, INode* inode, ViewExp* vpt, int flags)
                 continue;
             }
 
-            float cellPixelHeight = pointSize;
-            if (sizeMode == 1)
+            float cellPixelHeight = pixelHeightAtInsert;
+            if (sizeMode == 1 && !mUseFontFallback)
             {
                 cellPixelHeight = CADWorldHeightToPixels(
                     vpt, center * objectTM,
                     ResolveTableWorldTextHeight(cellHeight, fontSize));
             }
-            const MSTR display = FitCellText(mFontCache, mCells[index],
-                                             maxCellPixels, cellPixelHeight);
-            CADDrawScreenBezFontText(gw, p, display.data(), cellPixelHeight,
-                                     text, mFontCache);
+
+            if (mUseFontFallback)
+            {
+                const float fallbackPx = static_cast<float>(
+                    ClampInt(static_cast<int>(cellPixelHeight + 0.5f), 6, 48));
+                const MSTR display = FitCellText(mFontCache, mCells[index],
+                                                 maxCellPixels, fallbackPx);
+                CADDrawScreenText(gw, p, display.data(), fallbackPx, text);
+            }
+            else
+            {
+                const MSTR display = FitCellText(mFontCache, mCells[index],
+                                                 maxCellPixels,
+                                                 cellPixelHeight);
+                CADDrawScreenBezFontText(gw, p, display.data(),
+                                         cellPixelHeight, text, mFontCache);
+            }
         }
     }
     return 0;
