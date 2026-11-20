@@ -128,6 +128,63 @@ void CADSyncFontComboSelection(HWND hDlg, int controlId, IParamBlock2* pblock,
     }
 }
 
+void CADPopulateSizeModeCombo(HWND hDlg, int controlId, int sizeMode)
+{
+    if (!hDlg)
+    {
+        return;
+    }
+
+    SendDlgItemMessage(hDlg, controlId, CB_RESETCONTENT, 0, 0);
+    SendDlgItemMessage(hDlg, controlId, CB_ADDSTRING, 0,
+                       reinterpret_cast<LPARAM>(GetString(IDS_SIZEMODE_SCREEN)));
+    SendDlgItemMessage(hDlg, controlId, CB_ADDSTRING, 0,
+                       reinterpret_cast<LPARAM>(GetString(IDS_SIZEMODE_MODEL)));
+    SendDlgItemMessage(hDlg, controlId, CB_SETCURSEL,
+                       sizeMode == 1 ? 1 : 0, 0);
+}
+
+void CADApplySizeModeCombo(HWND hDlg, int controlId, IParamBlock2* pblock,
+                           int paramId, ReferenceMaker* owner)
+{
+    if (!hDlg || !pblock)
+    {
+        return;
+    }
+
+    const LRESULT selection =
+        SendDlgItemMessage(hDlg, controlId, CB_GETCURSEL, 0, 0);
+    if (selection == CB_ERR)
+    {
+        return;
+    }
+
+    Interface* ip = GetCOREInterface();
+    const TimeValue t = ip ? ip->GetTime() : 0;
+    theHold.Begin();
+    pblock->SetValue(paramId, t, selection == 1 ? 1 : 0);
+    theHold.Accept(GetString(IDS_SIZEMODE));
+
+    if (owner)
+    {
+        owner->NotifyDependents(FOREVER, PART_ALL, REFMSG_CHANGE);
+    }
+    if (ip)
+    {
+        ip->RedrawViews(t, REDRAW_INTERACTIVE);
+    }
+}
+
+void CADSyncSizeModeCombo(HWND hDlg, int controlId, int sizeMode)
+{
+    if (!hDlg)
+    {
+        return;
+    }
+    SendDlgItemMessage(hDlg, controlId, CB_SETCURSEL,
+                       sizeMode == 1 ? 1 : 0, 0);
+}
+
 void CADMakeAutoParamBlocks(ReferenceMaker* owner, ClassDesc2* desc)
 {
     if (owner && desc)

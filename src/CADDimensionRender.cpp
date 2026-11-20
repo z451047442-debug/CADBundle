@@ -223,8 +223,9 @@ void CADDimension::GetLocalBoundBox(TimeValue t, INode* inode, ViewExp* vpt,
     Color textColor;
     int precision = 2;
     MSTR fontName;
+    int sizeMode = 0;
     GetParams(t, showXYZ, arrowSize, textHeight, extensionOffset,
-              lineColor, textColor, precision, fontName);
+              lineColor, textColor, precision, fontName, sizeMode);
     (void)lineColor;
     (void)textColor;
     (void)precision;
@@ -242,22 +243,41 @@ void CADDimension::GetLocalBoundBox(TimeValue t, INode* inode, ViewExp* vpt,
         }
         const MSTR distanceText =
             CADFormatFixed(Length(points[1] - points[0]), precision);
-        const CADTextMetrics metrics =
-            CADMeasureText(mFontCache, distanceText.data(), textHeight);
-        const float offsetWorld = textHeight * screenScale * 0.6f;
-        const Point3 anchorWorld = (geometry.dimP0 + geometry.dimP1) * 0.5f +
-                                   geometry.normal * offsetWorld;
-        CADAddScreenTextBox(vpt, objectTM, anchorWorld,
-                            -metrics.widthPx * 0.5f,
-                            -metrics.heightPx * 0.5f - 8.0f,
-                            metrics.widthPx * 0.5f,
-                            metrics.heightPx * 0.5f - 8.0f,
-                            screenScale, dimensionBox);
+        const Point3 baseMid = (geometry.dimP0 + geometry.dimP1) * 0.5f;
+        const float offsetWorld =
+            0.6f * (sizeMode == 1 ? textHeight : textHeight * screenScale);
+        const Point3 anchorWorld = baseMid + geometry.normal * offsetWorld;
+        if (sizeMode == 1)
+        {
+            const float measureHeight =
+                screenScale > 0.0f ? textHeight / screenScale : textHeight;
+            const CADTextMetrics metrics =
+                CADMeasureText(mFontCache, distanceText.data(), measureHeight);
+            const float widthWorld = metrics.widthPx * screenScale;
+            CADAddWorldTextBox(vpt, objectTM, anchorWorld,
+                               -widthWorld * 0.5f,
+                               -textHeight * 0.5f - 8.0f * screenScale,
+                               widthWorld * 0.5f,
+                               textHeight * 0.5f - 8.0f * screenScale,
+                               dimensionBox);
+        }
+        else
+        {
+            const CADTextMetrics metrics =
+                CADMeasureText(mFontCache, distanceText.data(), textHeight);
+            CADAddScreenTextBox(vpt, objectTM, anchorWorld,
+                                -metrics.widthPx * 0.5f,
+                                -metrics.heightPx * 0.5f - 8.0f,
+                                metrics.widthPx * 0.5f,
+                                metrics.heightPx * 0.5f - 8.0f,
+                                screenScale, dimensionBox);
+        }
     }
     if (showXYZ)
     {
-        dimensionBox = CADExpandBox(dimensionBox,
-                                    textHeight * 1.6f * screenScale);
+        dimensionBox = CADExpandBox(
+            dimensionBox,
+            textHeight * 1.6f * (sizeMode == 1 ? 1.0f : screenScale));
     }
     box = dimensionBox;
     if (box.pmin.x > box.pmax.x)
@@ -322,8 +342,9 @@ int CADDimension::Display(TimeValue t, INode* inode, ViewExp* vpt, int flags)
     Color textColor;
     int precision = 2;
     MSTR fontName;
+    int sizeMode = 0;
     if (!GetParams(t, showXYZ, arrowSize, textHeight, extensionOffset,
-                   lineColor, textColor, precision, fontName))
+                   lineColor, textColor, precision, fontName, sizeMode))
     {
         return 0;
     }
@@ -361,6 +382,14 @@ int CADDimension::Display(TimeValue t, INode* inode, ViewExp* vpt, int flags)
         CADDrawScreenSegment(gw, segA[i], segB[i], line);
     }
 
+    float textPixelHeight = textHeight;
+    if (sizeMode == 1)
+    {
+        const Point3 baseMid = (geometry.dimP0 + geometry.dimP1) * 0.5f;
+        textPixelHeight =
+            CADWorldHeightToPixels(vpt, baseMid * objectTM, textHeight);
+    }
+
     IPoint2 d0;
     IPoint2 d1;
     if (ProjectObjectPoint(gw, objectTM, geometry.dimP0, d0) &&
@@ -372,7 +401,8 @@ int CADDimension::Display(TimeValue t, INode* inode, ViewExp* vpt, int flags)
         CADDrawScreenArrow(gw, d0, d1, arrowPx, arrowWidthPx, line);
         CADDrawScreenArrow(gw, d1, d0, arrowPx, arrowWidthPx, line);
 
-        const float offsetWorld = textHeight * screenScale * 0.6f;
+        const float offsetWorld =
+            0.6f * (sizeMode == 1 ? textHeight : textHeight * screenScale);
         const Point3 anchorWorld = (geometry.dimP0 + geometry.dimP1) * 0.5f +
                                    geometry.normal * offsetWorld;
         IPoint2 anchor;
@@ -380,18 +410,15 @@ int CADDimension::Display(TimeValue t, INode* inode, ViewExp* vpt, int flags)
         {
             const MSTR distanceText =
                 CADFormatFixed(Length(points[1] - points[0]), precision);
-            if (!mFontCache.IsReady())
-            {
-                mFontCache.SetFont(MSTR(_T("")));
-            }
             const CADTextMetrics metrics =
-                CADMeasureText(mFontCache, distanceText.data(), textHeight);
+                CADMeasureText(mFontCache, distanceText.data(),
+                               textPixelHeight);
             const IPoint2 textAnchor(
                 anchor.x - static_cast<int>(metrics.widthPx * 0.5f + 0.5f),
                 anchor.y - static_cast<int>(metrics.heightPx * 0.5f + 0.5f) -
                     8);
             CADDrawScreenBezFontText(gw, textAnchor, distanceText.data(),
-                                     textHeight, text, mFontCache);
+                                     textPixelHeight, text, mFontCache);
         }
     }
 
@@ -413,7 +440,8 @@ int CADDimension::Display(TimeValue t, INode* inode, ViewExp* vpt, int flags)
                         names[i], x.data(), y.data(), z.data());
             const IPoint2 textAnchor =
                 ScreenTextAnchor(gw, buffer, p, 8, -8);
-            CADDrawScreenText(gw, textAnchor, buffer, textHeight * 0.8f, text);
+            CADDrawScreenText(gw, textAnchor, buffer, textPixelHeight * 0.8f,
+                              text);
         }
     }
 
@@ -449,8 +477,9 @@ int CADDimension::HitTest(TimeValue t, INode* inode, int type, int crossing,
     Color textColor;
     int precision = 2;
     MSTR fontName;
+    int sizeMode = 0;
     if (!GetParams(t, showXYZ, arrowSize, textHeight, extensionOffset,
-                   lineColor, textColor, precision, fontName))
+                   lineColor, textColor, precision, fontName, sizeMode))
     {
         return 0;
     }
@@ -490,6 +519,14 @@ int CADDimension::HitTest(TimeValue t, INode* inode, int type, int crossing,
     BuildDimensionScreen(gw, objectTM, geometry, screenScale, extensionOffset,
                          segA, segB, kMaxHitSegments, segmentCount);
 
+    float textPixelHeight = textHeight;
+    if (sizeMode == 1)
+    {
+        const Point3 baseMid = (geometry.dimP0 + geometry.dimP1) * 0.5f;
+        textPixelHeight =
+            CADWorldHeightToPixels(vpt, baseMid * objectTM, textHeight);
+    }
+
     IPoint2 d0;
     IPoint2 d1;
     if (ProjectObjectPoint(gw, objectTM, geometry.dimP0, d0) &&
@@ -504,9 +541,10 @@ int CADDimension::HitTest(TimeValue t, INode* inode, int type, int crossing,
                            segmentCount, kMaxHitSegments);
     }
 
-    if (textHeight > 0.0f)
+    if (textPixelHeight > 0.0f)
     {
-        const float offsetWorld = textHeight * screenScale * 0.6f;
+        const float offsetWorld =
+            0.6f * (sizeMode == 1 ? textHeight : textHeight * screenScale);
         const Point3 anchorWorld = (geometry.dimP0 + geometry.dimP1) * 0.5f +
                                    geometry.normal * offsetWorld;
         IPoint2 anchor;
@@ -514,12 +552,9 @@ int CADDimension::HitTest(TimeValue t, INode* inode, int type, int crossing,
         {
             const MSTR distanceText =
                 CADFormatFixed(Length(points[1] - points[0]), precision);
-            if (!mFontCache.IsReady())
-            {
-                mFontCache.SetFont(MSTR(_T("")));
-            }
             const CADTextMetrics metrics =
-                CADMeasureText(mFontCache, distanceText.data(), textHeight);
+                CADMeasureText(mFontCache, distanceText.data(),
+                               textPixelHeight);
             const int textWidthPx = ClampInt(
                 static_cast<int>(metrics.widthPx + 0.5f), 4, 4000);
             const int textHeightPx = ClampInt(

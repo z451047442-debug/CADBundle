@@ -74,7 +74,8 @@ public:
 private:
     bool GetParams(TimeValue t, Point3& insertPos, int& rows, int& cols,
                    float& cellWidth, float& cellHeight, Color& lineColor,
-                   Color& textColor, MSTR& fontName, float& fontSize);
+                   Color& textColor, MSTR& fontName, float& fontSize,
+                   int& sizeMode);
     void EnsureDimensions(TimeValue t);
     void SyncCellsFromMirror(TimeValue t);
     void WriteCellMirror();

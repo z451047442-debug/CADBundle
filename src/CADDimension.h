@@ -67,7 +67,7 @@ private:
     bool GetParams(TimeValue t, bool& showXYZ, float& arrowSize,
                    float& textHeight, float& extensionOffset,
                    Color& lineColor, Color& textColor, int& precision,
-                   MSTR& fontName);
+                   MSTR& fontName, int& sizeMode);
 
     IParamBlock2* mPBlock = nullptr;
     CADBezFontCache mFontCache;

@@ -29,6 +29,13 @@ float ResolveTablePointSize(float cellHeight, float fontSize)
                                        kTableTextMinPx, kTableTextMaxPx));
 }
 
+float ResolveTableWorldTextHeight(float cellHeight, float fontSize)
+{
+    const float requested =
+        fontSize > 0.0f ? fontSize : cellHeight * kTableTextScale;
+    return std::min(std::max(requested, 0.01f), 10000.0f);
+}
+
 void EnsureFont(CADBezFontCache& cache)
 {
     if (!cache.IsReady())
@@ -121,8 +128,9 @@ void CADTable::GetLocalBoundBox(TimeValue t, INode* inode, ViewExp* vpt,
     Color textColor;
     MSTR fontName;
     float fontSize = 0.0f;
+    int sizeMode = 0;
     if (!GetParams(t, insertPos, rows, cols, cellWidth, cellHeight,
-                   lineColor, textColor, fontName, fontSize))
+                   lineColor, textColor, fontName, fontSize, sizeMode))
     {
         return;
     }
@@ -131,12 +139,18 @@ void CADTable::GetLocalBoundBox(TimeValue t, INode* inode, ViewExp* vpt,
 
     const Matrix3 objectTM = inode ? inode->GetObjectTM(t) : Matrix3();
     const float screenScale = vpt ? CADScreenScale(vpt, objectTM) : 1.0f;
-    const float width = cols * cellWidth * screenScale;
-    const float height = rows * cellHeight * screenScale;
+    const float widthWorld = sizeMode == 1 ? cellWidth : cellWidth * screenScale;
+    const float heightWorld =
+        sizeMode == 1 ? cellHeight : cellHeight * screenScale;
+    const float width = cols * widthWorld;
+    const float height = rows * heightWorld;
     box += insertPos;
     box += insertPos + Point3(width, height, 0.0f);
 
-    const float pointSize = ResolveTablePointSize(cellHeight, fontSize);
+    const float maxCellPixels =
+        sizeMode == 1
+            ? (screenScale > 0.0f ? cellWidth / screenScale : cellWidth)
+            : cellWidth;
     EnsureFont(mFontCache);
     if (rows * cols <= 400)
     {
@@ -149,17 +163,37 @@ void CADTable::GetLocalBoundBox(TimeValue t, INode* inode, ViewExp* vpt,
                 {
                     continue;
                 }
-                const MSTR display = FitCellText(
-                    mFontCache, mCells[index], cellWidth, pointSize);
-                const CADTextMetrics metrics =
-                    CADMeasureText(mFontCache, display.data(), pointSize);
                 const Point3 textAnchor =
-                    insertPos + Point3((col + 0.1f) * cellWidth * screenScale,
-                                       (row + 0.7f) * cellHeight * screenScale,
-                                       0.0f);
-                CADAddScreenTextBox(vpt, objectTM, textAnchor, 0.0f, 0.0f,
-                                    metrics.widthPx, metrics.heightPx,
-                                    screenScale, box);
+                    insertPos + Point3((col + 0.1f) * widthWorld,
+                                       (row + 0.7f) * heightWorld, 0.0f);
+                if (sizeMode == 1)
+                {
+                    const float worldTextHeight =
+                        ResolveTableWorldTextHeight(cellHeight, fontSize);
+                    const float measureHeight =
+                        screenScale > 0.0f ? worldTextHeight / screenScale
+                                           : worldTextHeight;
+                    const MSTR display = FitCellText(
+                        mFontCache, mCells[index], maxCellPixels,
+                        measureHeight);
+                    const CADTextMetrics metrics = CADMeasureText(
+                        mFontCache, display.data(), measureHeight);
+                    const float textWidthWorld = metrics.widthPx * screenScale;
+                    CADAddWorldTextBox(vpt, objectTM, textAnchor, 0.0f, 0.0f,
+                                       textWidthWorld, worldTextHeight, box);
+                }
+                else
+                {
+                    const float pointSize =
+                        ResolveTablePointSize(cellHeight, fontSize);
+                    const MSTR display = FitCellText(
+                        mFontCache, mCells[index], maxCellPixels, pointSize);
+                    const CADTextMetrics metrics = CADMeasureText(
+                        mFontCache, display.data(), pointSize);
+                    CADAddScreenTextBox(vpt, objectTM, textAnchor, 0.0f, 0.0f,
+                                        metrics.widthPx, metrics.heightPx,
+                                        screenScale, box);
+                }
             }
         }
     }
@@ -218,8 +252,9 @@ int CADTable::Display(TimeValue t, INode* inode, ViewExp* vpt, int flags)
     Color textColor;
     MSTR fontName;
     float fontSize = 0.0f;
+    int sizeMode = 0;
     if (!GetParams(t, insertPos, rows, cols, cellWidth, cellHeight,
-                   lineColor, textColor, fontName, fontSize))
+                   lineColor, textColor, fontName, fontSize, sizeMode))
     {
         return 0;
     }
@@ -228,8 +263,9 @@ int CADTable::Display(TimeValue t, INode* inode, ViewExp* vpt, int flags)
 
     const Matrix3 objectTM = inode->GetObjectTM(t);
     const float screenScale = CADScreenScale(vpt, objectTM);
-    const float widthWorld = cellWidth * screenScale;
-    const float heightWorld = cellHeight * screenScale;
+    const float widthWorld = sizeMode == 1 ? cellWidth : cellWidth * screenScale;
+    const float heightWorld =
+        sizeMode == 1 ? cellHeight : cellHeight * screenScale;
     const Point3 line(lineColor.r, lineColor.g, lineColor.b);
     const Point3 text(textColor.r, textColor.g, textColor.b);
 
@@ -245,7 +281,14 @@ int CADTable::Display(TimeValue t, INode* inode, ViewExp* vpt, int flags)
         CADDrawScreenSegment(gw, segA[i], segB[i], line);
     }
 
-    const float pointSize = ResolveTablePointSize(cellHeight, fontSize);
+    const float pointSize =
+        sizeMode == 1
+            ? 0.0f
+            : ResolveTablePointSize(cellHeight, fontSize);
+    const float maxCellPixels =
+        sizeMode == 1
+            ? (screenScale > 0.0f ? cellWidth / screenScale : cellWidth)
+            : cellWidth;
     EnsureFont(mFontCache);
     for (int row = 0; row < rows; ++row)
     {
@@ -266,10 +309,17 @@ int CADTable::Display(TimeValue t, INode* inode, ViewExp* vpt, int flags)
                 continue;
             }
 
-            const MSTR display =
-                FitCellText(mFontCache, mCells[index], cellWidth, pointSize);
-            CADDrawScreenBezFontText(gw, p, display.data(), pointSize, text,
-                                     mFontCache);
+            float cellPixelHeight = pointSize;
+            if (sizeMode == 1)
+            {
+                cellPixelHeight = CADWorldHeightToPixels(
+                    vpt, center * objectTM,
+                    ResolveTableWorldTextHeight(cellHeight, fontSize));
+            }
+            const MSTR display = FitCellText(mFontCache, mCells[index],
+                                             maxCellPixels, cellPixelHeight);
+            CADDrawScreenBezFontText(gw, p, display.data(), cellPixelHeight,
+                                     text, mFontCache);
         }
     }
     return 0;
@@ -299,8 +349,9 @@ int CADTable::HitTest(TimeValue t, INode* inode, int type, int crossing,
     Color textColor;
     MSTR fontName;
     float fontSize = 0.0f;
+    int sizeMode = 0;
     if (!GetParams(t, insertPos, rows, cols, cellWidth, cellHeight,
-                   lineColor, textColor, fontName, fontSize))
+                   lineColor, textColor, fontName, fontSize, sizeMode))
     {
         return 0;
     }
@@ -317,10 +368,12 @@ int CADTable::HitTest(TimeValue t, INode* inode, int type, int crossing,
 
     IPoint2 segA[kMaxGridSegments] = {};
     IPoint2 segB[kMaxGridSegments] = {};
+    const float widthWorld = sizeMode == 1 ? cellWidth : cellWidth * screenScale;
+    const float heightWorld =
+        sizeMode == 1 ? cellHeight : cellHeight * screenScale;
     const int segmentCount =
-        BuildTableGridScreen(gw, objectTM, insertPos, rows, cols,
-                             cellWidth * screenScale, cellHeight * screenScale,
-                             segA, segB, kMaxGridSegments);
+        BuildTableGridScreen(gw, objectTM, insertPos, rows, cols, widthWorld,
+                             heightWorld, segA, segB, kMaxGridSegments);
 
     return CADHitScreenSegments(hitRegion, segA, segB, segmentCount) ? 1 : 0;
 }

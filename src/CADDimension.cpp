@@ -27,6 +27,7 @@ enum DimParam
     dim_textcol,
     dim_prec,
     dim_font_name,
+    dim_size_mode,
 };
 
 constexpr BlockID kDimParams = 0x1001;
@@ -133,6 +134,11 @@ static ParamBlockDesc2 gDimParamBlock(
         p_default, _T("Microsoft YaHei"),
         p_end,
 
+    dim_size_mode, _T("sizeMode"), TYPE_INT, 0, IDS_SIZEMODE,
+        p_default, 0,
+        p_range, 0, 1,
+        p_end,
+
     p_end);
 
 CADDimension::CADDimension()
@@ -161,6 +167,10 @@ RefResult CADDimension::NotifyRefChanged(const Interval&, RefTargetHandle hTarge
         {
             CADSyncFontComboSelection(hDlg, IDC_DIM_FONT, mPBlock,
                                       dim_font_name);
+            Interval valid;
+            const int mode =
+                mPBlock ? mPBlock->GetInt(dim_size_mode, 0, valid) : 0;
+            CADSyncSizeModeCombo(hDlg, IDC_DIM_SIZEMODE, mode);
         }
     }
     return CADNotifyPBlockChange(this, mPBlock, hTarget, partID, message,
@@ -190,7 +200,7 @@ bool CADDimension::GetPoints(TimeValue t, Point3 out[3])
 bool CADDimension::GetParams(TimeValue t, bool& showXYZ, float& arrowSize,
                              float& textHeight, float& extensionOffset,
                              Color& lineColor, Color& textColor, int& precision,
-                             MSTR& fontName)
+                             MSTR& fontName, int& sizeMode)
 {
     if (!mPBlock)
     {
@@ -208,6 +218,8 @@ bool CADDimension::GetParams(TimeValue t, bool& showXYZ, float& arrowSize,
     textColor = mPBlock->GetColor(dim_textcol, t, validity);
     const MCHAR* fontValue = mPBlock->GetStr(dim_font_name, t, validity);
     fontName = fontValue ? fontValue : _T("");
+    sizeMode = mPBlock->GetInt(dim_size_mode, t, validity);
+    sizeMode = sizeMode == 1 ? 1 : 0;
     showXYZ = showValue != FALSE;
 
     if (precision < kPrecisionMin)
@@ -342,6 +354,15 @@ LRESULT CALLBACK DimensionDialogSubclass(HWND hWnd, UINT msg, WPARAM wParam,
                           dim_font_name, dimension, IDS_DIM_FONT);
         return 0;
     }
+    else if (msg == WM_COMMAND && HIWORD(wParam) == CBN_SELCHANGE &&
+             LOWORD(wParam) == IDC_DIM_SIZEMODE)
+    {
+        CADDimension* dimension = reinterpret_cast<CADDimension*>(refData);
+        CADApplySizeModeCombo(hWnd, IDC_DIM_SIZEMODE,
+                              dimension ? dimension->GetParamBlock(0) : nullptr,
+                              dim_size_mode, dimension);
+        return 0;
+    }
     return DefSubclassProc(hWnd, msg, wParam, lParam);
 }
 }
@@ -359,6 +380,10 @@ void CADDimension::BeginEditParams(IObjParam* ip, ULONG flags, Animatable* prev)
                           kDimensionDialogSubclassId,
                           reinterpret_cast<DWORD_PTR>(this));
         CADPopulateFontCombo(hDlg, IDC_DIM_FONT, mPBlock, dim_font_name);
+        Interval valid;
+        const int mode =
+            mPBlock ? mPBlock->GetInt(dim_size_mode, 0, valid) : 0;
+        CADPopulateSizeModeCombo(hDlg, IDC_DIM_SIZEMODE, mode);
     }
 }
 

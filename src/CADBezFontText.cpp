@@ -372,8 +372,21 @@ void CADAddScreenTextBox(ViewExp* vpt, const Matrix3& objectTM,
                          float rightPx, float bottomPx, float screenScale,
                          Box3& box)
 {
-    if (!CADIsFinite(anchorLocal) || !CADIsFinite(screenScale) ||
-        screenScale <= 0.0f)
+    if (!CADIsFinite(screenScale) || screenScale <= 0.0f)
+    {
+        return;
+    }
+    CADAddWorldTextBox(vpt, objectTM, anchorLocal, leftPx * screenScale,
+                       topPx * screenScale, rightPx * screenScale,
+                       bottomPx * screenScale, box);
+}
+
+void CADAddWorldTextBox(ViewExp* vpt, const Matrix3& objectTM,
+                        const Point3& anchorLocal, float leftWorld,
+                        float topWorld, float rightWorld, float bottomWorld,
+                        Box3& box)
+{
+    if (!CADIsFinite(anchorLocal))
     {
         return;
     }
@@ -385,15 +398,11 @@ void CADAddScreenTextBox(ViewExp* vpt, const Matrix3& objectTM,
     if (vpt && vpt->IsAlive() &&
         CADGetBillboardAxes(vpt, right, up, normal))
     {
-        const float wl = leftPx * screenScale;
-        const float wr = rightPx * screenScale;
-        const float ht = topPx * screenScale;
-        const float hb = bottomPx * screenScale;
         const Point3 corners[4] = {
-            world + right * wl - up * ht,
-            world + right * wr - up * ht,
-            world + right * wr - up * hb,
-            world + right * wl - up * hb,
+            world + right * leftWorld - up * topWorld,
+            world + right * rightWorld - up * topWorld,
+            world + right * rightWorld - up * bottomWorld,
+            world + right * leftWorld - up * bottomWorld,
         };
         const Matrix3 inverseTM = Inverse(objectTM);
         for (int i = 0; i < 4; ++i)
@@ -403,11 +412,8 @@ void CADAddScreenTextBox(ViewExp* vpt, const Matrix3& objectTM,
         return;
     }
 
-    // Conservative fallback for batch/null viewports: cover both axes.
-    const float width = std::max(std::abs(leftPx), std::abs(rightPx)) *
-                        screenScale;
-    const float height = std::max(std::abs(topPx), std::abs(bottomPx)) *
-                         screenScale;
+    const float width = std::max(std::abs(leftWorld), std::abs(rightWorld));
+    const float height = std::max(std::abs(topWorld), std::abs(bottomWorld));
     box += anchorLocal + Point3(-width, -height, 0.0f);
     box += anchorLocal + Point3(width, height, 0.0f);
 }

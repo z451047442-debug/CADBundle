@@ -24,6 +24,7 @@ enum LeaderParam
     leader_linecol,
     leader_textcol,
     leader_font_name,
+    leader_size_mode,
 };
 
 constexpr BlockID kLeaderParams = 0x1003;
@@ -116,6 +117,11 @@ static ParamBlockDesc2 gLeaderParamBlock(
         p_default, _T("Microsoft YaHei"),
         p_end,
 
+    leader_size_mode, _T("sizeMode"), TYPE_INT, 0, IDS_SIZEMODE,
+        p_default, 0,
+        p_range, 0, 1,
+        p_end,
+
     p_end);
 
 CADLeader::CADLeader()
@@ -144,6 +150,10 @@ RefResult CADLeader::NotifyRefChanged(const Interval&, RefTargetHandle hTarget,
         {
             CADSyncFontComboSelection(hDlg, IDC_LEAD_FONT, mPBlock,
                                       leader_font_name);
+            Interval valid;
+            const int mode =
+                mPBlock ? mPBlock->GetInt(leader_size_mode, 0, valid) : 0;
+            CADSyncSizeModeCombo(hDlg, IDC_LEAD_SIZEMODE, mode);
         }
     }
     return CADNotifyPBlockChange(this, mPBlock, hTarget, partID, message,
@@ -158,7 +168,7 @@ IParamBlock2* CADLeader::GetParamBlockByID(BlockID id)
 bool CADLeader::GetParams(TimeValue t, Point3& start, Point3& elbow,
                           Point3& textPos, MSTR& note, float& arrowSize,
                           float& textHeight, Color& lineColor,
-                          Color& textColor, MSTR& fontName)
+                          Color& textColor, MSTR& fontName, int& sizeMode)
 {
     if (!mPBlock)
     {
@@ -171,12 +181,14 @@ bool CADLeader::GetParams(TimeValue t, Point3& start, Point3& elbow,
     mPBlock->GetValue(leader_textpos, t, textPos, validity);
     mPBlock->GetValue(leader_arrow, t, arrowSize, validity);
     mPBlock->GetValue(leader_texth, t, textHeight, validity);
+    sizeMode = mPBlock->GetInt(leader_size_mode, t, validity);
     const MCHAR* noteValue = mPBlock->GetStr(leader_note, t, validity);
     const MCHAR* fontValue = mPBlock->GetStr(leader_font_name, t, validity);
     note = noteValue ? noteValue : _T("");
     fontName = fontValue ? fontValue : _T("");
     lineColor = mPBlock->GetColor(leader_linecol, t, validity);
     textColor = mPBlock->GetColor(leader_textcol, t, validity);
+    sizeMode = sizeMode == 1 ? 1 : 0;
     return CADIsFinite(start) && CADIsFinite(elbow) && CADIsFinite(textPos) &&
            CADIsFinite(arrowSize) && CADIsFinite(textHeight);
 }
@@ -301,6 +313,15 @@ LRESULT CALLBACK LeaderDialogSubclass(HWND hWnd, UINT msg, WPARAM wParam,
                           leader_font_name, leader, IDS_LEAD_FONT);
         return 0;
     }
+    else if (msg == WM_COMMAND && HIWORD(wParam) == CBN_SELCHANGE &&
+             LOWORD(wParam) == IDC_LEAD_SIZEMODE)
+    {
+        CADLeader* leader = reinterpret_cast<CADLeader*>(refData);
+        CADApplySizeModeCombo(hWnd, IDC_LEAD_SIZEMODE,
+                              leader ? leader->GetParamBlock(0) : nullptr,
+                              leader_size_mode, leader);
+        return 0;
+    }
     return DefSubclassProc(hWnd, msg, wParam, lParam);
 }
 }
@@ -318,6 +339,10 @@ void CADLeader::BeginEditParams(IObjParam* ip, ULONG flags, Animatable* prev)
                           kLeaderDialogSubclassId,
                           reinterpret_cast<DWORD_PTR>(this));
         CADPopulateFontCombo(hDlg, IDC_LEAD_FONT, mPBlock, leader_font_name);
+        Interval valid;
+        const int mode =
+            mPBlock ? mPBlock->GetInt(leader_size_mode, 0, valid) : 0;
+        CADPopulateSizeModeCombo(hDlg, IDC_LEAD_SIZEMODE, mode);
     }
 }
 

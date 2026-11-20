@@ -65,7 +65,8 @@ public:
 private:
     bool GetParams(TimeValue t, Point3& start, Point3& elbow, Point3& textPos,
                    MSTR& note, float& arrowSize, float& textHeight,
-                   Color& lineColor, Color& textColor, MSTR& fontName);
+                   Color& lineColor, Color& textColor, MSTR& fontName,
+                   int& sizeMode);
 
     IParamBlock2* mPBlock = nullptr;
     CADBezFontCache mFontCache;
