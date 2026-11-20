@@ -10,8 +10,7 @@
 | 对话框 | 宽(DLU) | 最高控件右边界(DLU) | 100% | 125% | 150% | 200% |
 |---|---:|---:|---:|---:|---:|---:|
 | IDD_CAD_DIM | 190 | 182（字体下拉） | 285 | 356 | 428 | 570 |
-| IDD_CAD_TEXT | 190 | 186（字符串/字体） | 285 | 356 | 428 | 570 |
-| IDD_CAD_LEADER | 190 | 186（注释/字体） | 285 | 356 | 428 | 570 |
+| IDD_CAD_TEXT | 190 | 186（字符串/字体） | 285 | 356 | 428 | 570 || IDD_CAD_LEADER | 190 | 186（注释/字体） | 285 | 356 | 428 | 570 |
 | IDD_CAD_TABLE | 190 | 186（字体下拉） | 285 | 356 | 428 | 570 |
 
 边距：左 4 DLU；最右控件距对话框右边界 ≥4 DLU（DIM 为 8）。
@@ -25,10 +24,10 @@
 | IDC_TABLE_FONT | 1417 | TABLE | 32,74,154,120 | |
 | IDC_TABLE_FONTSIZE | 1418 | TABLE | 32,92,26,10 | |
 | IDC_TABLE_FONTSIZESPIN | 1419 | TABLE | 61,92,7,10 | |
-| IDC_DIM_SIZEMODE | 1129 | DIM | 预留（R5-2） | 本批未放置 |
-| IDC_TEXT_SIZEMODE | 1211 | TEXT | 预留（R5-2） | 本批未放置 |
-| IDC_LEAD_SIZEMODE | 1326 | LEADER | 预留（R5-2） | 本批未放置 |
-| IDC_TABLE_SIZEMODE | 1420 | TABLE | 预留（R5-2） | 本批未放置 |
+| IDC_DIM_SIZEMODE | 1129 | DIM | 70,174,112,120 | R5-2 |
+| IDC_TEXT_SIZEMODE | 1211 | TEXT | 32,120,154,120 | R5-2；TEXT 高度 128→146 |
+| IDC_LEAD_SIZEMODE | 1326 | LEADER | 32,150,154,120 | R5-2 |
+| IDC_TABLE_SIZEMODE | 1420 | TABLE | 32,140,154,120 | R5-2 |
 
 ## 新增字符串 ID
 
