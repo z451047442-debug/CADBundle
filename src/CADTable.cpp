@@ -4,6 +4,7 @@
 #include "CADParamBlockHost.h"
 
 #include <GetCOREInterface.h>
+#include <commctrl.h>
 #include <iparamm2.h>
 #include <maxapi.h>
 #include <mouseman.h>
@@ -327,36 +328,32 @@ void CADTable::ApplyEditorSnapshot(int rows, int cols,
     }
 }
 
-class CADTableDlgProc : public ParamMap2UserDlgProc
+constexpr UINT_PTR kTableDialogSubclassId = 0x43415442;
+
+LRESULT CALLBACK TableDialogSubclass(HWND hWnd, UINT msg, WPARAM wParam,
+                                     LPARAM lParam, UINT_PTR, DWORD_PTR refData)
 {
-public:
-    explicit CADTableDlgProc(CADTable* table) : mTable(table) {}
-
-    INT_PTR DlgProc(TimeValue, IParamMap2*, HWND hWnd, UINT msg,
-                    WPARAM wParam, LPARAM) override
+    if (msg == WM_CTLCOLORDLG || msg == WM_CTLCOLORSTATIC ||
+        msg == WM_CTLCOLORBTN || msg == WM_CTLCOLOREDIT ||
+        msg == WM_CTLCOLORLISTBOX)
     {
-        if (msg == WM_CTLCOLORDLG || msg == WM_CTLCOLORSTATIC ||
-            msg == WM_CTLCOLORBTN || msg == WM_CTLCOLOREDIT ||
-            msg == WM_CTLCOLORLISTBOX)
+        const INT_PTR brush = CADApplyThemeColors(msg, wParam);
+        if (brush)
         {
-            return CADApplyThemeColors(msg, wParam);
+            return brush;
         }
-        if (msg == WM_COMMAND && LOWORD(wParam) == IDC_TABLE_EDIT)
-        {
-            if (mTable)
-            {
-                CADTableEditor::Edit(hWnd, mTable);
-            }
-            return TRUE;
-        }
-        return FALSE;
     }
-
-    void DeleteThis() override { delete this; }
-
-private:
-    CADTable* mTable = nullptr;
-};
+    else if (msg == WM_COMMAND && LOWORD(wParam) == IDC_TABLE_EDIT)
+    {
+        CADTable* table = reinterpret_cast<CADTable*>(refData);
+        if (table)
+        {
+            CADTableEditor::Edit(hWnd, table);
+        }
+        return 0;
+    }
+    return DefSubclassProc(hWnd, msg, wParam, lParam);
+}
 
 class CADTableCreateCallBack : public CreateMouseCallBack
 {
@@ -413,12 +410,24 @@ CreateMouseCallBack* CADTable::GetCreateMouseCallBack()
 void CADTable::BeginEditParams(IObjParam* ip, ULONG flags, Animatable* prev)
 {
     CADBeginAutoUI(GetCADTableDesc(), ip, this, flags, prev);
-    gTableParamBlock.SetUserDlgProc(new CADTableDlgProc(this));
+    IParamMap2* map = mPBlock ? mPBlock->GetMap(0) : nullptr;
+    HWND hDlg = map ? map->GetHWnd() : nullptr;
+    if (hDlg)
+    {
+        RemoveWindowSubclass(hDlg, TableDialogSubclass, kTableDialogSubclassId);
+        SetWindowSubclass(hDlg, TableDialogSubclass, kTableDialogSubclassId,
+                          reinterpret_cast<DWORD_PTR>(this));
+    }
 }
 
 void CADTable::EndEditParams(IObjParam* ip, ULONG flags, Animatable* next)
 {
-    gTableParamBlock.SetUserDlgProc(nullptr);
+    IParamMap2* map = mPBlock ? mPBlock->GetMap(0) : nullptr;
+    HWND hDlg = map ? map->GetHWnd() : nullptr;
+    if (hDlg)
+    {
+        RemoveWindowSubclass(hDlg, TableDialogSubclass, kTableDialogSubclassId);
+    }
     CADEndAutoUI(GetCADTableDesc(), ip, this, flags, next);
 }
 
