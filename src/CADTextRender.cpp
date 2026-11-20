@@ -78,8 +78,10 @@ void CADText::GetLocalBoundBox(TimeValue t, INode* inode, ViewExp* vpt,
     {
         mFontCache.SetFont(fontName);
     }
-    const float width = mFontCache.TextWidth(SanitizeText(text).data()) *
-                        height / 1000.0f;
+    const MSTR displayText = SanitizeText(text);
+    const CADTextMetrics metrics =
+        CADMeasureText(mFontCache, displayText.data(), height);
+    const float width = metrics.widthPx;
     const float boxWidth = width > 0.0f ? width : height * 0.5f;
     box += position;
     box += position + Point3(boxWidth, height, 0.0f);
@@ -225,7 +227,7 @@ int CADText::HitTest(TimeValue t, INode* inode, int type, int crossing,
     (void)normal;
 
     const float width =
-        mFontCache.TextWidth(displayText.data()) * height / 1000.0f;
+        CADMeasureText(mFontCache, displayText.data(), height).widthPx;
     const Point3 origin = position * objectTM;
     const Point3 corners[4] = {
         origin,

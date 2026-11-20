@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CADBundle.h"
+#include "CADBezFontText.h"
 
 #include <vector>
 
@@ -79,6 +80,7 @@ private:
     void WriteCellMirror();
 
     IParamBlock2* mPBlock = nullptr;
+    CADBezFontCache mFontCache;
     int mRows = 0;
     int mCols = 0;
     bool mSyncing = false;

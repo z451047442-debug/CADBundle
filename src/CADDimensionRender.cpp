@@ -229,9 +229,30 @@ void CADDimension::GetLocalBoundBox(TimeValue t, INode* inode, ViewExp* vpt,
     (void)textColor;
     (void)precision;
 
-    const float margin = (arrowSize + extensionOffset + textHeight * 2.0f) *
-                         screenScale;
-    box = CADExpandBox(CADBoxFromPoints(points, 3), margin);
+    const float margin = (arrowSize + extensionOffset) * screenScale;
+    Box3 dimensionBox = CADExpandBox(CADBoxFromPoints(points, 3), margin);
+    const DimGeometry geometry = BuildGeometry(points[0], points[1], points[2]);
+    if (geometry.valid && textHeight > 0.0f)
+    {
+        if (!mFontCache.IsReady())
+        {
+            mFontCache.SetFont(MSTR(_T("")));
+        }
+        const MSTR distanceText =
+            CADFormatFixed(Length(points[1] - points[0]), precision);
+        const CADTextMetrics metrics =
+            CADMeasureText(mFontCache, distanceText.data(), textHeight);
+        const float offsetWorld = textHeight * screenScale * 0.6f;
+        const Point3 anchorWorld = (geometry.dimP0 + geometry.dimP1) * 0.5f +
+                                   geometry.normal * offsetWorld;
+        const float widthWorld = metrics.widthPx * screenScale;
+        const float heightWorld = metrics.heightPx * screenScale;
+        dimensionBox += anchorWorld;
+        dimensionBox += anchorWorld + Point3(widthWorld, heightWorld, 0.0f);
+        dimensionBox += anchorWorld + Point3(widthWorld, 0.0f, 0.0f);
+        dimensionBox += anchorWorld + Point3(0.0f, heightWorld, 0.0f);
+    }
+    box = dimensionBox;
     if (box.pmin.x > box.pmax.x)
     {
         box += Point3(0.0f, 0.0f, 0.0f);
@@ -349,10 +370,18 @@ int CADDimension::Display(TimeValue t, INode* inode, ViewExp* vpt, int flags)
         {
             const MSTR distanceText =
                 CADFormatFixed(Length(points[1] - points[0]), precision);
-            const IPoint2 textAnchor =
-                ScreenTextAnchor(gw, distanceText.data(), anchor, 0, -8);
-            CADDrawScreenText(gw, textAnchor, distanceText.data(), textHeight,
-                              text);
+            if (!mFontCache.IsReady())
+            {
+                mFontCache.SetFont(MSTR(_T("")));
+            }
+            const CADTextMetrics metrics =
+                CADMeasureText(mFontCache, distanceText.data(), textHeight);
+            const IPoint2 textAnchor(
+                anchor.x - static_cast<int>(metrics.widthPx * 0.5f + 0.5f),
+                anchor.y - static_cast<int>(metrics.heightPx * 0.5f + 0.5f) -
+                    8);
+            CADDrawScreenBezFontText(gw, textAnchor, distanceText.data(),
+                                     textHeight, text, mFontCache);
         }
     }
 
@@ -472,13 +501,19 @@ int CADDimension::HitTest(TimeValue t, INode* inode, int type, int crossing,
         {
             const MSTR distanceText =
                 CADFormatFixed(Length(points[1] - points[0]), precision);
+            if (!mFontCache.IsReady())
+            {
+                mFontCache.SetFont(MSTR(_T("")));
+            }
+            const CADTextMetrics metrics =
+                CADMeasureText(mFontCache, distanceText.data(), textHeight);
             const int textWidthPx = ClampInt(
-                static_cast<int>(distanceText.Length() * 0.6f * textHeight +
-                                 0.5f),
-                4, 4000);
+                static_cast<int>(metrics.widthPx + 0.5f), 4, 4000);
+            const int textHeightPx = ClampInt(
+                static_cast<int>(metrics.heightPx + 0.5f), 1, 4000);
             AppendTextBox(IPoint2(anchor.x, anchor.y - 8), textWidthPx,
-                          static_cast<int>(textHeight + 0.5f), segA, segB,
-                          segmentCount, kMaxHitSegments);
+                          textHeightPx, segA, segB, segmentCount,
+                          kMaxHitSegments);
         }
     }
 

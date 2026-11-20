@@ -17,16 +17,36 @@ int ClampInt(int value, int low, int high)
     return value < low ? low : (value > high ? high : value);
 }
 
-MSTR FitCellText(GraphicsWindow* gw, const MSTR& text, float maxPixels)
+constexpr float kTableTextScale = 0.6f;
+constexpr int kTableTextMinPx = 6;
+constexpr int kTableTextMaxPx = 48;
+
+float ResolveTablePointSize(float cellHeight)
+{
+    return static_cast<float>(ClampInt(
+        static_cast<int>(cellHeight * kTableTextScale + 0.5f),
+        kTableTextMinPx, kTableTextMaxPx));
+}
+
+void EnsureFont(CADBezFontCache& cache)
+{
+    if (!cache.IsReady())
+    {
+        cache.SetFont(MSTR(_T("")));
+    }
+}
+
+MSTR FitCellText(CADBezFontCache& cache, const MSTR& text, float maxPixels,
+                 float pixelHeight)
 {
     if (text.Length() <= 16)
     {
         return text;
     }
 
-    SIZE extent = {};
-    gw->getTextExtents(text.data(), &extent);
-    if (extent.cx <= static_cast<LONG>(maxPixels))
+    const float widthPx =
+        CADMeasureText(cache, text.data(), pixelHeight).widthPx;
+    if (widthPx <= maxPixels)
     {
         return text;
     }
@@ -110,6 +130,30 @@ void CADTable::GetLocalBoundBox(TimeValue t, INode* inode, ViewExp* vpt,
     const float height = rows * cellHeight * screenScale;
     box += insertPos;
     box += insertPos + Point3(width, height, 0.0f);
+
+    const float pointSize = ResolveTablePointSize(cellHeight);
+    EnsureFont(mFontCache);
+    for (int row = 0; row < rows; ++row)
+    {
+        for (int col = 0; col < cols; ++col)
+        {
+            const size_t index = static_cast<size_t>(row) * cols + col;
+            if (index >= mCells.size() || mCells[index].Length() == 0)
+            {
+                continue;
+            }
+            const CADTextMetrics metrics =
+                CADMeasureText(mFontCache, mCells[index].data(), pointSize);
+            const float textWidth = metrics.widthPx * screenScale;
+            const float textHeight = metrics.heightPx * screenScale;
+            const Point3 cellOrigin =
+                insertPos + Point3(col * cellWidth * screenScale,
+                                   row * cellHeight * screenScale, 0.0f);
+            box += cellOrigin;
+            box += cellOrigin + Point3(textWidth, textHeight, 0.0f);
+        }
+    }
+
     box = CADExpandBox(box, std::max(width, height) * 0.05f);
 }
 
@@ -187,9 +231,8 @@ int CADTable::Display(TimeValue t, INode* inode, ViewExp* vpt, int flags)
         CADDrawScreenSegment(gw, segA[i], segB[i], line);
     }
 
-    const float pointSize =
-        static_cast<float>(ClampInt(static_cast<int>(cellHeight * 0.6f + 0.5f),
-                                    6, 48));
+    const float pointSize = ResolveTablePointSize(cellHeight);
+    EnsureFont(mFontCache);
     for (int row = 0; row < rows; ++row)
     {
         for (int col = 0; col < cols; ++col)
@@ -209,8 +252,10 @@ int CADTable::Display(TimeValue t, INode* inode, ViewExp* vpt, int flags)
                 continue;
             }
 
-            const MSTR display = FitCellText(gw, mCells[index], cellWidth);
-            CADDrawScreenText(gw, p, display.data(), pointSize, text);
+            const MSTR display =
+                FitCellText(mFontCache, mCells[index], cellWidth, pointSize);
+            CADDrawScreenBezFontText(gw, p, display.data(), pointSize, text,
+                                     mFontCache);
         }
     }
     return 0;

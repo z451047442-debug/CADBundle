@@ -69,10 +69,14 @@ void AppendArrowOutline(const IPoint2& tip, const IPoint2& toward,
     AddSegment(b1, tip, segA, segB, count, maxSegments);
 }
 
-int NoteWidthPixels(const MSTR& note, float textHeight)
+CADTextMetrics MeasureNote(CADBezFontCache& cache, const MSTR& note,
+                           float textHeight)
 {
-    return ClampInt(static_cast<int>(note.Length() * 0.6f * textHeight + 0.5f),
-                    4, 4000);
+    if (!cache.IsReady())
+    {
+        cache.SetFont(MSTR(_T("")));
+    }
+    return CADMeasureText(cache, note.data(), textHeight);
 }
 
 void AppendTextBox(const IPoint2& anchor, int widthPx, int heightPx,
@@ -82,10 +86,12 @@ void AppendTextBox(const IPoint2& anchor, int widthPx, int heightPx,
     {
         return;
     }
-    const IPoint2 c0(anchor.x, anchor.y - heightPx);
-    const IPoint2 c1(anchor.x + widthPx, anchor.y - heightPx);
-    const IPoint2 c2(anchor.x + widthPx, anchor.y);
-    const IPoint2 c3(anchor.x, anchor.y);
+    // CADDrawScreenBezFontText treats anchor as the top-left corner and draws
+    // downward, so the hit box must extend below the anchor as well.
+    const IPoint2 c0(anchor.x, anchor.y);
+    const IPoint2 c1(anchor.x + widthPx, anchor.y);
+    const IPoint2 c2(anchor.x + widthPx, anchor.y + heightPx);
+    const IPoint2 c3(anchor.x, anchor.y + heightPx);
     AddSegment(c0, c1, segA, segB, count, maxSegments);
     AddSegment(c1, c2, segA, segB, count, maxSegments);
     AddSegment(c2, c3, segA, segB, count, maxSegments);
@@ -114,8 +120,19 @@ void CADLeader::GetLocalBoundBox(TimeValue t, INode* inode, ViewExp* vpt,
     const Matrix3 objectTM = inode ? inode->GetObjectTM(t) : Matrix3();
     const float screenScale = vpt ? CADScreenScale(vpt, objectTM) : 1.0f;
     const Point3 points[3] = { start, elbow, textPos };
-    const float margin = (arrowSize + textHeight * 2.0f) * screenScale;
-    box = CADExpandBox(CADBoxFromPoints(points, 3), margin);
+    Box3 textBox = CADExpandBox(CADBoxFromPoints(points, 3),
+                                arrowSize * screenScale);
+    if (note.Length() > 0 && textHeight > 0.0f)
+    {
+        const CADTextMetrics metrics = MeasureNote(mFontCache, note, textHeight);
+        const float widthWorld = metrics.widthPx * screenScale;
+        const float heightWorld = metrics.heightPx * screenScale;
+        textBox += textPos;
+        textBox += textPos + Point3(widthWorld, heightWorld, 0.0f);
+        textBox += textPos + Point3(widthWorld, 0.0f, 0.0f);
+        textBox += textPos + Point3(0.0f, heightWorld, 0.0f);
+    }
+    box = textBox;
     if (box.pmin.x > box.pmax.x)
     {
         box += Point3(0.0f, 0.0f, 0.0f);
@@ -202,6 +219,10 @@ int CADLeader::Display(TimeValue t, INode* inode, ViewExp* vpt, int flags)
 
     if (note.Length() > 0 && textHeight > 0.0f)
     {
+        if (!mFontCache.IsReady())
+        {
+            mFontCache.SetFont(MSTR(_T("")));
+        }
         CADDrawScreenBezFontText(gw, pt, note.data(), textHeight, text,
                                  mFontCache);
     }
@@ -265,9 +286,13 @@ int CADLeader::HitTest(TimeValue t, INode* inode, int type, int crossing,
 
     if (note.Length() > 0 && textHeight > 0.0f)
     {
-        AppendTextBox(pt, NoteWidthPixels(note, textHeight),
-                      static_cast<int>(textHeight + 0.5f), segA, segB,
-                      segmentCount, kMaxHitSegments);
+        const CADTextMetrics metrics = MeasureNote(mFontCache, note, textHeight);
+        const int widthPx = ClampInt(
+            static_cast<int>(metrics.widthPx + 0.5f), 4, 4000);
+        const int heightPx = ClampInt(
+            static_cast<int>(metrics.heightPx + 0.5f), 1, 4000);
+        AppendTextBox(pt, widthPx, heightPx, segA, segB, segmentCount,
+                      kMaxHitSegments);
     }
 
     return CADHitScreenSegments(hitRegion, segA, segB, segmentCount) ? 1 : 0;
