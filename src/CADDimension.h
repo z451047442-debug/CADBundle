@@ -21,7 +21,7 @@ public:
     {
         return localized ? GetString(IDS_DIM_CLASS) : _T("CADDimension");
     }
-    void InitNodeName(MSTR& s) override { s = _T("CADDimension"); }
+    void InitNodeName(MSTR& s) override { s = _T("CAD标注"); }
     void DeleteThis() override { delete this; }
 
     int NumRefs() override { return 1; }

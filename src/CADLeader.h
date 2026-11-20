@@ -21,7 +21,7 @@ public:
     {
         return localized ? GetString(IDS_LEADER_CLASS) : _T("CADLeader");
     }
-    void InitNodeName(MSTR& s) override { s = _T("CADLeader"); }
+    void InitNodeName(MSTR& s) override { s = _T("CAD引线"); }
     void DeleteThis() override { delete this; }
 
     int NumRefs() override { return 1; }

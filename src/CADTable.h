@@ -22,7 +22,7 @@ public:
     {
         return localized ? GetString(IDS_TABLE_CLASS) : _T("CADTable");
     }
-    void InitNodeName(MSTR& s) override { s = _T("CADTable"); }
+    void InitNodeName(MSTR& s) override { s = _T("CAD表格"); }
     void DeleteThis() override { delete this; }
 
     int NumRefs() override { return 1; }

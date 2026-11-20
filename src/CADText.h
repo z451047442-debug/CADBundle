@@ -21,7 +21,7 @@ public:
     {
         return localized ? GetString(IDS_TEXT_CLASS) : _T("CADText");
     }
-    void InitNodeName(MSTR& s) override { s = _T("CADText"); }
+    void InitNodeName(MSTR& s) override { s = _T("CAD文字"); }
     void DeleteThis() override { delete this; }
 
     int NumRefs() override { return 1; }
