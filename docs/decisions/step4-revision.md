@@ -188,10 +188,14 @@
 
 #### 8.2.1 统一文字度量
 
+- **单位公式（强制）**：`CADBezFontCache::TextWidth` 返回 1000 参考字高单位；入口统一写为
+  `widthPx = TextWidth(text) * pixelHeight / 1000.0f`（与现有 `CADTextRender.cpp:81-82、227-228` 一致）。漏除 1000 将使宽度放大千倍，V-07 必失败。
 - 新增共享入口（放在 `CADBezFontText`，避免 `CADAnnotationCommon.cpp` 继续膨胀）：
-  - `CADTextMetrics MeasureText(CADBezFontCache&, const MCHAR* text, float pixelHeight)` → `{widthPx, heightPx}`；
+  - `CADTextMetrics MeasureText(CADBezFontCache&, const MCHAR* text, float pixelHeight)` → `{widthPx, heightPx}`，内部执行上述 `/1000`；
   - `float CADWorldHeightToPixels(ViewExp*, const Point3& worldPos, float worldHeight)`：投影 `p` 与 `p + up*worldHeight` 量取像素高度（透视/正交一致）。
-- Display、HitTest、`GetLocalBoundBox/GetWorldBoundBox` 三处必须调用同一入口；禁止再保留 `0.6×字数×字高` 近似（引线/标注/表格均改为实测宽度）。
+  - 空视口回退：`vpt == nullptr || !vpt->IsAlive()` 时与 `CADScreenScale` 保持同一口径（`CADAnnotationCommon.cpp:16-19` 返回 1.0），`CADWorldHeightToPixels` 返回屏幕模式高度；bbox/HitTest 不得崩溃，并记录回退计数。
+- Display、HitTest、`GetLocalBoundBox/GetWorldBoundBox` 三处必须调用同一入口；四类 bbox 均已带 `ViewExp* vpt`（`CADText.h:48`、`CADLeader.h:48`、`CADTable.h:49`、`CADDimension.h:48`），禁止再保留 `0.6×字数×字高` 近似（引线/标注/表格均改为实测宽度）。
+- 兼容口径：屏幕模式像素**高度**不变；宽度与命中框按实测重算（见 8.4-3）。
 
 #### 8.2.2 sizeMode（四类文字）
 
@@ -201,8 +205,11 @@
   - **CADText**：屏幕模式 `heightWorld = fontSize * CADScreenScale`；模型模式 `heightWorld = fontSize`（世界单位）；billboard 朝向不变；Display/HitTest/bbox 共用。
   - **引线注释**：屏幕模式 `pixelHeight = textHeight`；模型模式 `pixelHeight = CADWorldHeightToPixels(vpt, textPos*objectTM, textHeight)`；使用屏幕空间 BezFont。
   - **标注文本**：屏幕模式沿用现状；模型模式按世界高度换算像素；文本偏移 `0.6 * 当前像素高度`，与模式一致；HitTest/bbox 同步。
-  - **表格单元格**：网格/单元格宽高仍屏幕恒定；屏幕模式 `pixelHeight = fontSize`（像素）；模型模式 `pixelHeight` 由 `fontSize`（世界单位）换算；文本超出单元格矩形时按单元格裁剪/省略号，`cellTexts` 存储不变。
-- 覆盖关系：R5 对 U7 的覆盖**仅限单元格文本**；网格/单元格宽高仍按 U7 屏幕恒定。
+  - **表格（单位随模式切换）**：
+    - 屏幕模式：`cellWidth/cellHeight` 为**像素**；`widthWorld = cellWidth * CADScreenScale`（现状，`CADTableRender.cpp:172-174`）；文字像素高度按 `fontSize` 解析：`fontSize=0` 表示自动（`cellHeight*0.6`），**自动值与显式值统一夹到 [6,48] px**（与旧实现 `ClampInt(...,6,48)` 的 `CADTableRender.cpp:190-192` 完全一致，保证旧场景字号不变）。
+    - 模型模式：`cellWidth/cellHeight` 为**世界单位**；`widthWorld = cellWidth`（不再乘 `CADScreenScale`）；文字世界高度 `worldTextHeight = (fontSize>0 ? fontSize : cellHeight*0.6)`（世界单位，夹到 [0.01,10000]），`pixelHeight = CADWorldHeightToPixels(vpt, anchor*objectTM, worldTextHeight)`；**不得**再对 `pixelHeight` 套用旧的 6–48 px 截断，否则模型模式失去缩放。
+    - 单格裁剪：`FitCellText` 的 `maxPixels` 必须传**像素宽**——屏幕模式传 `cellWidth`；模型模式传 `cellWidth / CADScreenScale`（`CADTableRender.cpp:20-32` 以 `getTextExtents().cx` 比较）。`cellTexts` 存储不变。
+- 覆盖关系：U7 的“网格/单元格屏幕恒定”仅适用于**屏幕模式**；模型模式对整表覆盖，失败条件“模型模式表格溢出不可读”只允许由单格 `FitCellText` 截断触发。
 - 模式切换：UI 控件写 pblock → `NotifyRefChanged` 清字形缓存并 `RedrawViews`；验收要求切换后立即变化。
 - V-02b：旧场景（无 `sizeMode`/字体新参数）加载后默认 0/默认字体，3 次保存重开 `fails=0`。
 
@@ -210,26 +217,28 @@
 
 - **引线**：新增 `fontName`（TYPE_STRING，默认 Microsoft YaHei）+ COMBOBOX；子类化处理 `CBN_SELCHANGE`；渲染 `CADDrawScreenBezFontText` + `cache.SetFont(fontName)`。
 - **标注**：新增 `fontName` + COMBOBOX；距离文本改用 BezFont（屏幕空间，模型模式按 8.2.2 换算）；缺字体回退。
-- **表格**：新增 `fontName`、`fontSize` + COMBOBOX/SPINNER；单元格文本用屏幕 BezFont；可见单元格裁剪；单帧可见 >400 或单元格像素高度 <8 px 时该帧回落固定屏幕字体（初值，V-06 实测调整）。
+- **表格**：新增 `fontName`、`fontSize` + COMBOBOX/SPINNER；单元格文本用屏幕 BezFont；可见单元格裁剪；**回落带滞回**：用 8.2.2 换算后的最终 `pixelHeight` 判定，可见单元格 >480 或像素高度 <8 px 进入固定字体回落，≤360 且 ≥10 px 恢复；每帧记录实际路径与回落次数（初值由 V-06 校准）。
 - **CADText**：已有字体下拉，保持；纳入统一度量与 sizeMode。
 - 所有字体 UI 使用与 CADText 相同的窗口子类化模式；禁止再使用 `SetUserDlgProc` 注册时序（V-01 已验证）。
 
 #### 8.2.4 对话框与资源
 
 - 四对话框宽度 ≤190 DLU；控件 ID 与既有 `p_ui` 绑定不变（仅新增/重排）。
-- 新增控件 ID：
-  - `IDC_DIM_SIZEMODE` 1129
-  - `IDC_TEXT_SIZEMODE` 1211
-  - `IDC_LEAD_FONT` 1325、`IDC_LEAD_SIZEMODE` 1326
-  - `IDC_TABLE_FONT` 1417、`IDC_TABLE_FONTSIZE` 1418、`IDC_TABLE_FONTSIZESPIN` 1419、`IDC_TABLE_SIZEMODE` 1420
-- 新增字符串 ID（当前 100–131 已用，顺延）：`IDS_SIZEMODE` 132、`IDS_SIZEMODE_SCREEN` 133、`IDS_SIZEMODE_MODEL` 134、`IDS_LEAD_FONT` 135、`IDS_DIM_FONT` 136、`IDS_TABLE_FONT` 137、`IDS_TABLE_FONTSIZE` 138。
+- **可行性前置**：现有控件右边界已达 205–220 DLU（评审实测；`res/CADBundle.rc` 对应对话框内的控件），≤190 需横向压缩约 15–30 DLU（评审估计 30–40）。R5-1 编码前必须产出**压缩矩阵**：标签缩短、两列分组、纵向增高（≤+40 DLU）、不得删控件或重叠；若某对话框确实无法在 ≤190 内保持可读，提交用户裁决，**不得默许放宽**。
+- 新增控件 ID（已核对 `res/resource.h` 无占用）：
+  - `IDC_DIM_SIZEMODE` 1129（DIM 现有止于 1128）
+  - `IDC_TEXT_SIZEMODE` 1211（TEXT 现有止于 1210）
+  - `IDC_LEAD_FONT` 1325、`IDC_LEAD_SIZEMODE` 1326（LEADER 现有止于 1324）
+  - `IDC_TABLE_FONT` 1417、`IDC_TABLE_FONTSIZE` 1418、`IDC_TABLE_FONTSIZESPIN` 1419、`IDC_TABLE_SIZEMODE` 1420（TABLE 现有止于 1416）
+- 新增字符串 ID（已核对 `res/resource.h`：现有已用到 162，原写 132–138 与 `IDS_DIM_*` 冲突）：`IDS_SIZEMODE` 163、`IDS_SIZEMODE_SCREEN` 164、`IDS_SIZEMODE_MODEL` 165、`IDS_LEAD_FONT` 166、`IDS_DIM_FONT` 167、`IDS_TABLE_FONT` 168、`IDS_TABLE_FONTSIZE` 169。
 - R5-1 编码前先产出**资源差异表**（每个控件的 ID、坐标、尺寸、DLU→像素、DPI 100/125/150/200% 预期），作为 V-04 的证据基线。
 
 #### 8.2.5 行数拆分
 
-- `CADAnnotationCommon.cpp` 当前 555 行：将屏幕空间绘制/命中实现（`CADDrawScreenSegment/Polyline/Arrow/Text`、`CADHitScreenSegments` 等）拆到新文件 `src/CADScreenDraw.cpp`，声明保留在 `CADAnnotationCommon.h`；新增文件加入 `CADBundle.vcxproj`；目标两文件各 ≤500 行。
+- `CADAnnotationCommon.cpp` 当前 555 行：将屏幕空间绘制/命中实现（`CADDrawScreenSegment/Polyline/Arrow/Text`、`CADHitScreenSegments` 等）拆到新文件 `src/CADScreenDraw.cpp`，声明保留在 `CADAnnotationCommon.h`；新增文件加入 `CADBundle.vcxproj`。
+- **行数预算**：`CADScreenDraw.cpp` 预计 120–180 行；`CADAnnotationCommon.cpp` 目标 ≤450 行；两文件均 ≤500。
 - `CADText.cpp`（468）与 `CADLeader.cpp`（482）：字体 UI/sizeMode 的新增代码优先放入 `Render`/`Editor`/公共 helper，编码前核对行数；不得突破 500。
-- 新增文件属工程配置变更，不新增第三方依赖；需在 R5-1 提交中说明。**新增 `CADScreenDraw.cpp` 需用户确认后加入 `CADBundle.vcxproj`**；若未获批准，改为在既有文件内拆分并优先迁出非文本绘制代码。
+- 新增文件属工程配置变更，不新增第三方依赖。**R5-1 开工前必须取得用户对新增 `CADScreenDraw.cpp` 的确认**，作为出口前置门禁；若未获批准，改为在既有文件内拆分并优先迁出非文本绘制代码。
 
 ### 8.3 验证与门禁
 
@@ -238,36 +247,43 @@
 | V-01b | CADDimension 主题改子类化、删除 `CADLeaderThemeProc` | `grep -r SetUserDlgProc src` = 0；三种面板各开关 3 次正常 |
 | V-02b | 旧场景 + 新参数（sizeMode/fontName/fontSize）加载/保存/重开 3 次 | 默认值精确；`fails=0` |
 | V-03b | 引线/标注/表格多字体（YaHei/Arial/CJK）字体切换 | 立即生效；缺字体回退可观察 |
-| V-04 | 100/125/150/200% DPI 截图 | 控件在客户区、边距 ≥2 px、无重叠 |
-| V-05 | 四类渲染范围 vs HitTest/bbox | 偏差 ≤ max(2 px, 5%) |
-| V-06 | 50×50 全非空表格、1920×1080、默认缩放、≥300 帧 | p50 ≤16.7 ms；p95 ≤33 ms；回落阈值可记录 |
-| V-07 | 四类 sizeMode 1×/2×/4× 像素测量 | 屏幕模式误差 ≤ max(2 px, 5%)；模型模式成比例；保存重开保持 |
-| V-08 | 新场景 → 旧 DLO 加载；分批 `git revert` | 不崩溃、忽略新增参数；回滚后 smoke 29 PASS |
+| V-04 | 100/125/150/200% DPI 截图 + 四对话框宽度实测 | 每对话框宽度 ≤190 DLU（资源字段与 100% 截图换算一致）；控件在客户区、边距 ≥2 px、无重叠；压缩矩阵逐项对照 |
+| V-05 | 四类渲染范围 vs HitTest/bbox（有效视口） | 偏差 ≤ max(2 px, 5%)；空 `vpt` 回退路径单独记录且不崩溃 |
+| V-06A | **屏幕模式**、50×50 全非空、1920×1080、默认缩放（同基线相机）、≥300 帧 | 可见格 ≈1600 → 断言实际路径为 Fallback 且 `fallbackCount≥1`；p50 ≤16.7 ms、p95 ≤33 ms |
+| V-06B | **屏幕模式**、`fontSize≥10 px`、可见格 <400（如缩放至 10×10 格占满视口）、≥300 帧 | 断言实际路径为 BezFont；p50 ≤16.7 ms、p95 ≤33 ms |
+| V-07 | 四类 sizeMode，视口缩放 1×/2×/4×（同相机、世界宽度比），样本文本 "Ag中123"、YaHei | 屏幕模式高度误差 ≤ max(2 px, 5%)；模型模式像素高度与缩放成反比（比例误差 ≤5%）；保存重开保持 |
+| V-08 | 新场景 → `f55f192` 构建的旧 DLO 加载；**逆序** `git revert`（R5-3→R5-2→R5-1） | 不崩溃、忽略新增参数；每批回滚后 `smoke_r1.ms` 29 PASS；vcxproj 恢复 |
 | V-10 | 全量 Release + `smoke_r1.ms` + 诊断残留检查 | 0 warning/0 error；29 PASS；0 残留 |
+
+- “可见格”定义：裁剪到视口后、与视口相交的单元格数量；屏幕外单元格不计入。
+- “默认缩放”定义：与 R4 基线相同的默认相机（未人为 Zoom），记录 `GetVPWorldWidth` 值备查。
 
 ### 8.4 验收标准（可签字）
 
-1. 四个修改面板在默认宽度与 4 档 DPI 下控件完整可见、可编辑（截图 + 边距/重叠测量）。
+1. 四个修改面板在默认宽度与 4 档 DPI 下控件完整可见、可编辑；**资源字段实测宽度 ≤190 DLU** 且与 100% 截图换算一致（截图 + 边距/重叠测量 + 压缩矩阵）。
 2. 引线/标注/表格字体下拉可枚举、切换生效；缺字体回退可见；保存重开保持。
-3. `sizeMode` 四类可切换；屏幕模式保持现状；模型模式文字随视口缩放（像素尺寸成比例）；切换即时刷新。
-4. 表格 50×50 性能达标（V-06）；回落阈值触发有证据。
+3. `sizeMode` 四类可切换；屏幕模式**像素高度不变**，宽度/命中框按实测重算且满足 V-05；模型模式文字与表格均随视口缩放（像素尺寸成反比），切换即时刷新。
+4. 表格 V-06A 与 V-06B 均达标；回落路径、次数与滞回有证据。
 5. Display/HitTest/bbox 一致（V-05）；表格编辑器可打开、回读一致。
 6. 旧场景加载不崩溃、新参数默认；`smoke_r1.ms` 29 PASS；无诊断残留。
 
 ### 8.5 失败条件、最低验证、回滚
 
-- 失败条件：旧场景加载失败；模型模式表格溢出不可读；性能不达标；DPI 裁切；子类化生命周期异常；字体回退不可见。
-- 最低验证：构建 → 29 项 smoke → 四面板 → 字体/模式切换 → 保存重开 → 50×50 采样 → 回滚演练。
-- 回滚：按 R5-1…R5-3 分批提交，`git revert` 对应提交；配置无变更；数据为追加参数（不改 chunk）；DLO 备份/恢复；旧场景夹具测试。
+- 失败条件：旧场景加载失败；模型模式表格系统性溢出不可读（单格截断除外）；性能不达标；DPI 裁切；子类化生命周期异常；字体回退不可见。
+- 最低验证：构建 → 29 项 smoke → 四面板 → 字体/模式切换 → 保存重开 → V-06A/B 采样 → 回滚演练。
+- 回滚：R5-1…R5-3 为叠加提交，**必须逆序** `git revert`（R5-3→R5-2→R5-1）；**R5-1 含新增 `CADScreenDraw.cpp` 与 `CADBundle.vcxproj` 变更，revert 时一并恢复工程配置**；若走 8.2.5 的“不新增文件”分支，同步删除本句的 `CADScreenDraw.cpp` 表述；数据为追加参数（不改 chunk）；DLO 备份/恢复；旧场景夹具测试。
 
 ### 8.6 批次
 
 | 批次 | 内容 | 出口证据 |
 |---|---|---|
-| R5-1 | 度量统一 + `CADScreenDraw.cpp` 拆分 + 四对话框 ≤190 DLU/新 ID + 引线/标注/表格字体 UI + CADDimension 子类化 | V-01b、V-03b、V-04、V-05、构建 0 warning |
-| R5-2 | 四类 `sizeMode` + 模型模式命中/bbox/溢出 + 切换刷新 | V-02b、V-07 |
-| R5-3 | 表格字体性能采样 + 回落阈值 + 文档/验收 + 回滚演练 | V-06、V-08、V-10 |
+| R5-1 | 度量统一 + `CADScreenDraw.cpp` 拆分 + 四对话框 ≤190 DLU/新 ID + 引线/标注/表格字体 UI + CADDimension 子类化 | 用户确认新增文件、资源差异表、压缩矩阵、V-01b、V-03b、V-04、V-05、构建 0 warning |
+| R5-2 | 四类 `sizeMode` + 模型模式整表/命中/bbox + 切换刷新 | V-02b、V-07 |
+| R5-3 | 表格字体性能采样 + 回落阈值/滞回 + 文档/验收 + 回滚演练 | V-06A、V-06B、V-08、V-10 |
 
 ### 8.7 R5 循环账本
 
 - 重置后 **0/9**；记录见 `docs/reviews/loop-ledger.md` 的 R5 表。同一问题最多 3 轮；达到 9 轮即停止。
+- **2026-11-20 第 1 轮评审：不通过**（1/9）。处理：P0-2/3/4/5/6 属实并已按上文修订；P0-1 经代码核实不成立（四类 bbox 均带 `ViewExp*`），降级为空视口回退要求；P1-1/2/3/4/5 已并入 8.2.4/8.2.5/8.3/8.4。进入第 2 轮评审。
+- **2026-11-20 第 2 轮评审：不通过**（2/9）。未闭合项：表格 `FitCellText` 像素/世界单位换算、表格文字像素参数与截断、V-06A/B 条件与“可见格”定义、≤190 DLU 缺少验收项、回滚必须逆序。已全部修订；进入第 3 轮评审（该问题最后一轮）。
+- **2026-11-20 第 3 轮评审：不通过**（3/9）。缺口 2/3/4 已闭合；缺口 1 残余：`fontSize=0` 自动值未与显式值一起夹到 [6,48] px，旧场景极端 `cellHeight` 会变字号。已按评审原文修正；**R5-000 达 3 轮上限，不再开第 4 轮**，转用户裁决（接受修订进入 R5-1 / 调整范围）。
