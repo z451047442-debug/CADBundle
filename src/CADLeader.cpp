@@ -3,6 +3,7 @@
 #include "CADParamBlockHost.h"
 
 #include <GetCOREInterface.h>
+#include <commctrl.h>
 #include <hold.h>
 #include <iparamm2.h>
 #include <maxapi.h>
@@ -22,6 +23,7 @@ enum LeaderParam
     leader_texth,
     leader_linecol,
     leader_textcol,
+    leader_font_name,
 };
 
 constexpr BlockID kLeaderParams = 0x1003;
@@ -110,6 +112,10 @@ static ParamBlockDesc2 gLeaderParamBlock(
         p_ui, TYPE_COLORSWATCH, IDC_LEAD_TEXTCOL,
         p_end,
 
+    leader_font_name, _T("fontName"), TYPE_STRING, 0, IDS_LEAD_FONT,
+        p_default, _T("Microsoft YaHei"),
+        p_end,
+
     p_end);
 
 CADLeader::CADLeader()
@@ -145,7 +151,7 @@ IParamBlock2* CADLeader::GetParamBlockByID(BlockID id)
 bool CADLeader::GetParams(TimeValue t, Point3& start, Point3& elbow,
                           Point3& textPos, MSTR& note, float& arrowSize,
                           float& textHeight, Color& lineColor,
-                          Color& textColor)
+                          Color& textColor, MSTR& fontName)
 {
     if (!mPBlock)
     {
@@ -159,7 +165,9 @@ bool CADLeader::GetParams(TimeValue t, Point3& start, Point3& elbow,
     mPBlock->GetValue(leader_arrow, t, arrowSize, validity);
     mPBlock->GetValue(leader_texth, t, textHeight, validity);
     const MCHAR* noteValue = mPBlock->GetStr(leader_note, t, validity);
+    const MCHAR* fontValue = mPBlock->GetStr(leader_font_name, t, validity);
     note = noteValue ? noteValue : _T("");
+    fontName = fontValue ? fontValue : _T("");
     lineColor = mPBlock->GetColor(leader_linecol, t, validity);
     textColor = mPBlock->GetColor(leader_textcol, t, validity);
     return CADIsFinite(start) && CADIsFinite(elbow) && CADIsFinite(textPos) &&
@@ -260,72 +268,61 @@ CreateMouseCallBack* CADLeader::GetCreateMouseCallBack()
     return &gLeaderCreateCB;
 }
 
-class CADLeaderThemeProc : public ParamMap2UserDlgProc
+namespace
 {
-public:
-    explicit CADLeaderThemeProc(CADLeader* obj) : mObj(obj) {}
+constexpr UINT_PTR kLeaderDialogSubclassId = 0x4341444C;
 
-    INT_PTR DlgProc(TimeValue t, IParamMap2*, HWND hWnd, UINT msg,
-                    WPARAM wParam, LPARAM) override
+LRESULT CALLBACK LeaderDialogSubclass(HWND hWnd, UINT msg, WPARAM wParam,
+                                      LPARAM lParam, UINT_PTR, DWORD_PTR refData)
+{
+    if (msg == WM_CTLCOLORDLG || msg == WM_CTLCOLORSTATIC ||
+        msg == WM_CTLCOLORBTN || msg == WM_CTLCOLOREDIT ||
+        msg == WM_CTLCOLORLISTBOX)
     {
-        if (msg == WM_INITDIALOG)
+        const INT_PTR brush = CADApplyThemeColors(msg, wParam);
+        if (brush)
         {
-            PopulateNote(hWnd);
-        }
-        else if (msg == WM_COMMAND && HIWORD(wParam) == EN_KILLFOCUS &&
-                 LOWORD(wParam) == IDC_LEAD_NOTE)
-        {
-            ApplyNote(hWnd, t);
-            return TRUE;
-        }
-        return CADApplyThemeColors(msg, wParam);
-    }
-
-    void DeleteThis() override { delete this; }
-
-private:
-    void PopulateNote(HWND hWnd)
-    {
-        IParamBlock2* pblock = mObj ? mObj->GetParamBlock(0) : nullptr;
-        if (!pblock || !hWnd)
-        {
-            return;
-        }
-        Interval valid;
-        const MCHAR* note = pblock->GetStr(leader_note, 0, valid);
-        SetDlgItemText(hWnd, IDC_LEAD_NOTE, note ? note : _T(""));
-    }
-
-    void ApplyNote(HWND hWnd, TimeValue t)
-    {
-        IParamBlock2* pblock = mObj ? mObj->GetParamBlock(0) : nullptr;
-        if (!pblock)
-        {
-            return;
-        }
-        TCHAR buffer[1025] = {};
-        GetDlgItemText(hWnd, IDC_LEAD_NOTE, buffer, _countof(buffer));
-        theHold.Begin();
-        pblock->SetValue(leader_note, t, buffer);
-        theHold.Accept(GetString(IDS_LEADER_NOTE));
-        mObj->NotifyDependents(FOREVER, PART_ALL, REFMSG_CHANGE);
-        Interface* ip = GetCOREInterface();
-        if (ip)
-        {
-            ip->RedrawViews(t, REDRAW_INTERACTIVE);
+            return brush;
         }
     }
-
-    CADLeader* mObj = nullptr;
-};
+    else if (msg == WM_COMMAND && HIWORD(wParam) == CBN_SELCHANGE &&
+             LOWORD(wParam) == IDC_LEAD_FONT)
+    {
+        CADLeader* leader = reinterpret_cast<CADLeader*>(refData);
+        CADApplyFontCombo(hWnd, IDC_LEAD_FONT,
+                          leader ? leader->GetParamBlock(0) : nullptr,
+                          leader_font_name, leader, IDS_LEAD_FONT);
+        return 0;
+    }
+    return DefSubclassProc(hWnd, msg, wParam, lParam);
+}
+}
 
 void CADLeader::BeginEditParams(IObjParam* ip, ULONG flags, Animatable* prev)
 {
     CADBeginAutoUI(GetCADLeaderDesc(), ip, this, flags, prev);
+    IParamMap2* map = mPBlock ? mPBlock->GetMap(0) : nullptr;
+    HWND hDlg = map ? map->GetHWnd() : nullptr;
+    if (hDlg)
+    {
+        RemoveWindowSubclass(hDlg, LeaderDialogSubclass,
+                             kLeaderDialogSubclassId);
+        SetWindowSubclass(hDlg, LeaderDialogSubclass,
+                          kLeaderDialogSubclassId,
+                          reinterpret_cast<DWORD_PTR>(this));
+        CADPopulateFontCombo(hDlg, IDC_LEAD_FONT, mPBlock, leader_font_name);
+    }
 }
 
 void CADLeader::EndEditParams(IObjParam* ip, ULONG flags, Animatable* next)
 {
+    IParamMap2* map = mPBlock ? mPBlock->GetMap(0) : nullptr;
+    HWND hDlg = map ? map->GetHWnd() : nullptr;
+    if (hDlg)
+    {
+        RemoveWindowSubclass(hDlg, LeaderDialogSubclass,
+                             kLeaderDialogSubclassId);
+    }
     CADEndAutoUI(GetCADLeaderDesc(), ip, this, flags, next);
 }
 

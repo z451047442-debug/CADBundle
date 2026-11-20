@@ -107,16 +107,21 @@ void CADLeader::GetLocalBoundBox(TimeValue t, INode* inode, ViewExp* vpt,
     Point3 elbow;
     Point3 textPos;
     MSTR note;
+    MSTR fontName;
     float arrowSize = 8.0f;
     float textHeight = 12.0f;
     Color lineColor;
     Color textColor;
     if (!GetParams(t, start, elbow, textPos, note, arrowSize, textHeight,
-                   lineColor, textColor))
+                   lineColor, textColor, fontName))
     {
         return;
     }
 
+    if (mFontCache.FontName() != fontName)
+    {
+        mFontCache.SetFont(fontName);
+    }
     const Matrix3 objectTM = inode ? inode->GetObjectTM(t) : Matrix3();
     const float screenScale = vpt ? CADScreenScale(vpt, objectTM) : 1.0f;
     const Point3 points[3] = { start, elbow, textPos };
@@ -185,14 +190,20 @@ int CADLeader::Display(TimeValue t, INode* inode, ViewExp* vpt, int flags)
     Point3 elbow;
     Point3 textPos;
     MSTR note;
+    MSTR fontName;
     float arrowSize = 8.0f;
     float textHeight = 12.0f;
     Color lineColor;
     Color textColor;
     if (!GetParams(t, start, elbow, textPos, note, arrowSize, textHeight,
-                   lineColor, textColor))
+                   lineColor, textColor, fontName))
     {
         return 0;
+    }
+
+    if (mFontCache.FontName() != fontName)
+    {
+        mFontCache.SetFont(fontName);
     }
 
     const Matrix3 objectTM = inode->GetObjectTM(t);
@@ -248,14 +259,20 @@ int CADLeader::HitTest(TimeValue t, INode* inode, int type, int crossing,
     Point3 elbow;
     Point3 textPos;
     MSTR note;
+    MSTR fontName;
     float arrowSize = 8.0f;
     float textHeight = 12.0f;
     Color lineColor;
     Color textColor;
     if (!GetParams(t, start, elbow, textPos, note, arrowSize, textHeight,
-                   lineColor, textColor))
+                   lineColor, textColor, fontName))
     {
         return 0;
+    }
+
+    if (mFontCache.FontName() != fontName)
+    {
+        mFontCache.SetFont(fontName);
     }
 
     HitRegion hitRegion;

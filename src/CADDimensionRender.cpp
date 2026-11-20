@@ -222,12 +222,18 @@ void CADDimension::GetLocalBoundBox(TimeValue t, INode* inode, ViewExp* vpt,
     Color lineColor;
     Color textColor;
     int precision = 2;
+    MSTR fontName;
     GetParams(t, showXYZ, arrowSize, textHeight, extensionOffset,
-              lineColor, textColor, precision);
+              lineColor, textColor, precision, fontName);
     (void)showXYZ;
     (void)lineColor;
     (void)textColor;
     (void)precision;
+
+    if (mFontCache.FontName() != fontName)
+    {
+        mFontCache.SetFont(fontName);
+    }
 
     const float margin = (arrowSize + extensionOffset) * screenScale;
     Box3 dimensionBox = CADExpandBox(CADBoxFromPoints(points, 3), margin);
@@ -314,10 +320,16 @@ int CADDimension::Display(TimeValue t, INode* inode, ViewExp* vpt, int flags)
     Color lineColor;
     Color textColor;
     int precision = 2;
+    MSTR fontName;
     if (!GetParams(t, showXYZ, arrowSize, textHeight, extensionOffset,
-                   lineColor, textColor, precision))
+                   lineColor, textColor, precision, fontName))
     {
         return 0;
+    }
+
+    if (mFontCache.FontName() != fontName)
+    {
+        mFontCache.SetFont(fontName);
     }
 
     const Matrix3 objectTM = inode->GetObjectTM(t);
@@ -438,8 +450,9 @@ int CADDimension::HitTest(TimeValue t, INode* inode, int type, int crossing,
     Color lineColor;
     Color textColor;
     int precision = 2;
+    MSTR fontName;
     if (!GetParams(t, showXYZ, arrowSize, textHeight, extensionOffset,
-                   lineColor, textColor, precision))
+                   lineColor, textColor, precision, fontName))
     {
         return 0;
     }
@@ -447,6 +460,11 @@ int CADDimension::HitTest(TimeValue t, INode* inode, int type, int crossing,
 
     HitRegion hitRegion;
     MakeHitRegion(hitRegion, type, crossing, 4, p);
+
+    if (mFontCache.FontName() != fontName)
+    {
+        mFontCache.SetFont(fontName);
+    }
 
     const Matrix3 objectTM = inode->GetObjectTM(t);
     const float screenScale = CADScreenScale(vpt, objectTM);

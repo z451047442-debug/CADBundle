@@ -30,3 +30,14 @@ void CADBeginAutoUI(ClassDesc2* desc, IObjParam* ip, ReferenceMaker* owner,
                     ULONG flags, Animatable* prev);
 void CADEndAutoUI(ClassDesc2* desc, IObjParam* ip, ReferenceMaker* owner,
                   ULONG flags, Animatable* prev);
+
+// Fills a dropdown with the fonts available through the BezFont manager and
+// selects the value stored in pblock[paramId]. Missing current values are
+// appended so an unavailable font still round-trips.
+void CADPopulateFontCombo(HWND hDlg, int controlId, IParamBlock2* pblock,
+                          int paramId);
+
+// Writes the selected dropdown text into pblock[paramId] as one undoable edit
+// and redraws the viewports.
+void CADApplyFontCombo(HWND hDlg, int controlId, IParamBlock2* pblock,
+                       int paramId, ReferenceMaker* owner, int stringId);
