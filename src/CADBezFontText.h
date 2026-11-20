@@ -79,3 +79,11 @@ bool CADDrawBezFontText(GraphicsWindow* gw, ViewExp* vpt,
                         const Matrix3& objectTM, const Point3& objectPos,
                         const MCHAR* text, float heightWorld,
                         const Point3& color, CADBezFontCache& cache);
+
+// Draws text as BezFont glyph outlines directly in screen space (pixels).
+// anchor is a top-left screen anchor; the glyph baseline is placed at
+// anchor.y + pixelHeight. The function sets the GraphicsWindow transform to
+// identity for the duration of the draw and restores it on exit.
+bool CADDrawScreenBezFontText(GraphicsWindow* gw, const IPoint2& anchor,
+                              const MCHAR* text, float pixelHeight,
+                              const Point3& color, CADBezFontCache& cache);

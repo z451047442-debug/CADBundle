@@ -33,12 +33,15 @@ bool BuildGlyph(BEZFONTHANDLE handle, UINT code, CADBezGlyph& glyph)
         valid = tryBuild(code | 0x10000000U, true);
         if (!valid)
         {
-            valid = tryBuild(code, false);
+            valid = tryBuild(code, true);
         }
     }
     else
     {
-        valid = tryBuild(code, false);
+        // Character codes must use the native/Unicode path. With
+        // ggo_native=false the manager treats the value as a glyph index,
+        // which renders ASCII 'V03' as glyph indices for 'sMP'.
+        valid = tryBuild(code, true);
     }
 
     if (!valid)
@@ -349,6 +352,100 @@ bool CADDrawBezFontText(GraphicsWindow* gw, ViewExp* vpt,
 
         DrawGlyphOutline(gw, *glyph, origin,
                          right, up, normal, penOffset * scale, scale, color);
+        penOffset += glyph->width;
+    }
+
+    return true;
+}
+
+bool CADDrawScreenBezFontText(GraphicsWindow* gw, const IPoint2& anchor,
+                              const MCHAR* text, float pixelHeight,
+                              const Point3& color, CADBezFontCache& cache)
+{
+    if (!gw || !text || !*text || !CADIsFinite(pixelHeight) ||
+        pixelHeight <= kMinFontHeight)
+    {
+        return false;
+    }
+
+    if (!cache.IsReady() && !cache.SetFont(MSTR(_T(""))))
+    {
+        return false;
+    }
+
+    const float scale = pixelHeight / kBezFontReferenceHeight;
+    const Point3 right(1.0f, 0.0f, 0.0f);
+    const Point3 up(0.0f, -1.0f, 0.0f);
+    const Point3 normal(0.0f, 0.0f, 1.0f);
+    const Point3 origin(static_cast<float>(anchor.x),
+                        static_cast<float>(anchor.y) + pixelHeight, 0.0f);
+
+    GWTransformGuard transformGuard(gw);
+    gw->setTransform(Matrix3());
+
+    float penOffset = 0.0f;
+    MaxSDK::Util::CharIterator<const TCHAR> it(text);
+    for (; !it.AtEnd(); ++it)
+    {
+        const MaxSDK::Util::Char character = it.Get();
+        CADBezGlyph* glyph = cache.GetGlyph(character.CharCode());
+        if (!glyph || !glyph->valid)
+        {
+            penOffset += kMissingGlyphAdvance;
+            continue;
+        }
+
+        const Point3 glyphOrigin = origin + right * (penOffset * scale);
+        for (int splineIndex = 0; splineIndex < glyph->shape.splineCount;
+             ++splineIndex)
+        {
+            Spline3D* spline = glyph->shape.splines[splineIndex];
+            if (!spline || spline->KnotCount() < 2 || spline->Segments() <= 0)
+            {
+                continue;
+            }
+
+            for (int segment = 0; segment < spline->Segments(); ++segment)
+            {
+                Point3 points[kGlyphSamplesPerSegment + 1];
+                bool validSegment = true;
+                for (int sample = 0; sample <= kGlyphSamplesPerSegment;
+                     ++sample)
+                {
+                    const float t =
+                        static_cast<float>(sample) /
+                        static_cast<float>(kGlyphSamplesPerSegment);
+                    const Point3 glyphPoint = spline->InterpBezier3D(
+                        segment, t, SPLINE_INTERP_SIMPLE);
+                    if (!CADIsFinite(glyphPoint))
+                    {
+                        validSegment = false;
+                        break;
+                    }
+                    points[sample] =
+                        glyphOrigin +
+                        (right * glyphPoint.x + up * glyphPoint.y +
+                         normal * glyphPoint.z) * scale;
+                }
+
+                if (!validSegment)
+                {
+                    continue;
+                }
+
+                for (int sample = 0; sample < kGlyphSamplesPerSegment; ++sample)
+                {
+                    const IPoint2 a(
+                        static_cast<int>(points[sample].x + 0.5f),
+                        static_cast<int>(points[sample].y + 0.5f));
+                    const IPoint2 b(
+                        static_cast<int>(points[sample + 1].x + 0.5f),
+                        static_cast<int>(points[sample + 1].y + 0.5f));
+                    CADDrawScreenSegment(gw, a, b, color);
+                }
+            }
+        }
+
         penOffset += glyph->width;
     }
 
