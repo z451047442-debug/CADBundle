@@ -55,6 +55,10 @@
 - 自动化证据：静态断言 `fails=0`；`r5_1_params.ms` 11/11 PASS；`r5_1_measure.ms` 4/4 PASS；`smoke_r1.ms` 29 PASS；Release x64 0 warning/0 error。
 - 资源差异表：`docs/reviews/r5-1-resource-matrix.md`；新增 `IDC_DIM_FONT=1130`（补方案遗漏）。
 - 待人工（需 GUI）：V-04 四档 DPI 截图；V-03b 字体切换目视；V-05 渲染/命中目视。
+- 独立评审（2026-11-20）：**需修复**。Critical 1：字体回退时缓存存实际回退名，请求名比较恒不等 → 每帧重开字体。Important 3：引线/标注 bbox 与屏幕空间不符；字体下拉撤销后不同步。修复提交 `e00df54`：`EnsureFont` 按请求名去重；`CADAddScreenTextBox` 生成 billboard bbox（含 ShowXYZ 余量、表格截断与 ≤400 格上限）；`CADSyncFontComboSelection` 在四类 `NotifyRefChanged` 同步下拉。复验：static 0、params 0、measure 0、smoke 0、build 0 warning。
+- 延后 Minor：空 `vpt` 回退计数未实现；`theHold.Begin` 后未检查 `SetValue` 返回值。
+- 测试口径修订：标注 bbox 用例把 arrow/extension 边距压小以隔离文字宽度（探针确认实现已包含文字）。
+- 范围裁定：表格 HitTest 保持仅网格线；`CADText` bbox 一并改为 billboard 矩形（防御性一致性修复，非评审发现）。
 - 2026-11-20 第 1 轮（不通过）：P0 = `/1000` 换算缺失；表格模型模式单位不一致；V-06 全帧回落不可验证；回滚与 vcxproj 变更矛盾；“屏幕模式保持现状”不可判定。P0-1（bbox 无 `ViewExp`）经核实为误判——四类 bbox 均带该参数。P1-1…P1-5 已并入方案。
 - 2026-11-20 修订：§8.2.1 补 `/1000` 公式与空视口回退；§8.2.2 表格模型模式改为整表世界单位；§8.2.3 回落加滞回；§8.2.4 补压缩矩阵与升级裁决；§8.2.5 补行数预算与新增文件门禁；§8.3 V-06 拆 A/B、V-07/V-08 补口径；§8.4/§8.5 同步。
 - 同一问题最大轮次记录：L001 为 2 轮；L004 为 1 轮（均未超过 3 轮上限）。
