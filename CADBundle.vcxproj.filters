@@ -1,49 +1,3 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <ItemGroup>
-    <Filter Include="Source Files">
-      <UniqueIdentifier>{fbad0f2d-faaa-4b0b-865c-583fac8ddcb1}</UniqueIdentifier>
-      <Extensions>cpp;c;cxx;rc;def;r;odl;idl;hpj;bat</Extensions>
-    </Filter>
-    <Filter Include="Header Files">
-      <UniqueIdentifier>{92f20462-242f-4a0c-883e-b3c33819b84b}</UniqueIdentifier>
-      <Extensions>h;hpp;hxx;hm;inl</Extensions>
-    </Filter>
-    <Filter Include="Resource Files">
-      <UniqueIdentifier>{ad6e765e-4300-41dc-b185-05b019286785}</UniqueIdentifier>
-      <Extensions>ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe</Extensions>
-    </Filter>
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="CADBundle.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="DllEntry.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="CADBundle.def">
-      <Filter>Source Files</Filter>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="3dsmaxsdk_preinclude.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="CADBundle.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="resource.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <ResourceCompile Include="CADBundle.rc">
-      <Filter>Resource Files</Filter>
-    </ResourceCompile>
-  </ItemGroup>
-</Project>
 <?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
@@ -61,32 +15,39 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="CADBundle.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="DllEntry.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
+    <ClCompile Include="src\DllEntry.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClCompile Include="src\CADDimension.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClCompile Include="src\CADDimensionRender.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClCompile Include="src\CADText.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClCompile Include="src\CADTextRender.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClCompile Include="src\CADLeader.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClCompile Include="src\CADLeaderRender.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClCompile Include="src\CADTable.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClCompile Include="src\CADTablePersistence.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClCompile Include="src\CADTableRender.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClCompile Include="src\CADTableEditor.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClCompile Include="src\CADAnnotationCommon.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClCompile Include="src\CADBezFontText.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClCompile Include="src\CADParamBlockHost.cpp"><Filter>Source Files</Filter></ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="CADBundle.def">
-      <Filter>Source Files</Filter>
-    </None>
+    <ClInclude Include="src\CADBundle.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="src\CADBundleIDs.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="src\CADDimension.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="src\CADText.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="src\CADLeader.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="src\CADTable.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="src\CADTableEditor.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="src\CADAnnotationCommon.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="src\CADBezFontText.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="src\CADParamBlockHost.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="src\3dsmaxsdk_preinclude.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="res\resource.h"><Filter>Header Files</Filter></ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="3dsmaxsdk_preinclude.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="CADBundle.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="resource.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
+    <None Include="CADBundle.def"><Filter>Source Files</Filter></None>
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="CADBundle.rc">
-      <Filter>Resource Files</Filter>
-    </ResourceCompile>
+    <ResourceCompile Include="res\CADBundle.rc"><Filter>Resource Files</Filter></ResourceCompile>
   </ItemGroup>
 </Project>
