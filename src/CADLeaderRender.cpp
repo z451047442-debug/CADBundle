@@ -108,12 +108,13 @@ void CADLeader::GetLocalBoundBox(TimeValue t, INode* inode, ViewExp* vpt,
     Point3 textPos;
     MSTR note;
     MSTR fontName;
+    int sizeMode = 0;
     float arrowSize = 8.0f;
     float textHeight = 12.0f;
     Color lineColor;
     Color textColor;
     if (!GetParams(t, start, elbow, textPos, note, arrowSize, textHeight,
-                   lineColor, textColor, fontName))
+                   lineColor, textColor, fontName, sizeMode))
     {
         return;
     }
@@ -121,15 +122,35 @@ void CADLeader::GetLocalBoundBox(TimeValue t, INode* inode, ViewExp* vpt,
     mFontCache.EnsureFont(fontName);
     const Matrix3 objectTM = inode ? inode->GetObjectTM(t) : Matrix3();
     const float screenScale = vpt ? CADScreenScale(vpt, objectTM) : 1.0f;
+    float pixelHeight = textHeight;
+    if (sizeMode == 1)
+    {
+        pixelHeight =
+            CADWorldHeightToPixels(vpt, textPos * objectTM, textHeight);
+    }
     const Point3 points[3] = { start, elbow, textPos };
     Box3 textBox = CADExpandBox(CADBoxFromPoints(points, 3),
                                 arrowSize * screenScale);
     if (note.Length() > 0 && textHeight > 0.0f)
     {
-        const CADTextMetrics metrics = MeasureNote(mFontCache, note, textHeight);
-        CADAddScreenTextBox(vpt, objectTM, textPos, 0.0f, 0.0f,
-                            metrics.widthPx, metrics.heightPx, screenScale,
-                            textBox);
+        if (sizeMode == 1)
+        {
+            const float measureHeight =
+                screenScale > 0.0f ? textHeight / screenScale : textHeight;
+            const CADTextMetrics metrics =
+                MeasureNote(mFontCache, note, measureHeight);
+            const float widthWorld = metrics.widthPx * screenScale;
+            CADAddWorldTextBox(vpt, objectTM, textPos, 0.0f, 0.0f,
+                               widthWorld, textHeight, textBox);
+        }
+        else
+        {
+            const CADTextMetrics metrics =
+                MeasureNote(mFontCache, note, pixelHeight);
+            CADAddScreenTextBox(vpt, objectTM, textPos, 0.0f, 0.0f,
+                                metrics.widthPx, metrics.heightPx, screenScale,
+                                textBox);
+        }
     }
     box = textBox;
     if (box.pmin.x > box.pmax.x)
@@ -185,12 +206,13 @@ int CADLeader::Display(TimeValue t, INode* inode, ViewExp* vpt, int flags)
     Point3 textPos;
     MSTR note;
     MSTR fontName;
+    int sizeMode = 0;
     float arrowSize = 8.0f;
     float textHeight = 12.0f;
     Color lineColor;
     Color textColor;
     if (!GetParams(t, start, elbow, textPos, note, arrowSize, textHeight,
-                   lineColor, textColor, fontName))
+                   lineColor, textColor, fontName, sizeMode))
     {
         return 0;
     }
@@ -198,6 +220,12 @@ int CADLeader::Display(TimeValue t, INode* inode, ViewExp* vpt, int flags)
     mFontCache.EnsureFont(fontName);
 
     const Matrix3 objectTM = inode->GetObjectTM(t);
+    float pixelHeight = textHeight;
+    if (sizeMode == 1)
+    {
+        pixelHeight =
+            CADWorldHeightToPixels(vpt, textPos * objectTM, textHeight);
+    }
     const Point3 line(lineColor.r, lineColor.g, lineColor.b);
     const Point3 text(textColor.r, textColor.g, textColor.b);
 
@@ -219,13 +247,9 @@ int CADLeader::Display(TimeValue t, INode* inode, ViewExp* vpt, int flags)
     const int arrowPx = ClampInt(static_cast<int>(arrowSize + 0.5f), 2, 400);
     CADDrawScreenArrow(gw, ps, pe, arrowPx, ClampInt(arrowPx / 3, 1, 200), line);
 
-    if (note.Length() > 0 && textHeight > 0.0f)
+    if (note.Length() > 0 && pixelHeight > 0.0f)
     {
-        if (!mFontCache.IsReady())
-        {
-            mFontCache.SetFont(MSTR(_T("")));
-        }
-        CADDrawScreenBezFontText(gw, pt, note.data(), textHeight, text,
+        CADDrawScreenBezFontText(gw, pt, note.data(), pixelHeight, text,
                                  mFontCache);
     }
     return 0;
@@ -251,22 +275,30 @@ int CADLeader::HitTest(TimeValue t, INode* inode, int type, int crossing,
     Point3 textPos;
     MSTR note;
     MSTR fontName;
+    int sizeMode = 0;
     float arrowSize = 8.0f;
     float textHeight = 12.0f;
     Color lineColor;
     Color textColor;
     if (!GetParams(t, start, elbow, textPos, note, arrowSize, textHeight,
-                   lineColor, textColor, fontName))
+                   lineColor, textColor, fontName, sizeMode))
     {
         return 0;
     }
 
     mFontCache.EnsureFont(fontName);
 
+    const Matrix3 objectTM = inode->GetObjectTM(t);
+    float pixelHeight = textHeight;
+    if (sizeMode == 1)
+    {
+        pixelHeight =
+            CADWorldHeightToPixels(vpt, textPos * objectTM, textHeight);
+    }
+
     HitRegion hitRegion;
     MakeHitRegion(hitRegion, type, crossing, 4, p);
 
-    const Matrix3 objectTM = inode->GetObjectTM(t);
     GWScreenGuard screenGuard(gw);
 
     IPoint2 ps;
@@ -289,9 +321,10 @@ int CADLeader::HitTest(TimeValue t, INode* inode, int type, int crossing,
     AppendArrowOutline(ps, pe, arrowPx, ClampInt(arrowPx / 3, 1, 200), segA,
                        segB, segmentCount, kMaxHitSegments);
 
-    if (note.Length() > 0 && textHeight > 0.0f)
+    if (note.Length() > 0 && pixelHeight > 0.0f)
     {
-        const CADTextMetrics metrics = MeasureNote(mFontCache, note, textHeight);
+        const CADTextMetrics metrics =
+            MeasureNote(mFontCache, note, pixelHeight);
         const int widthPx = ClampInt(
             static_cast<int>(metrics.widthPx + 0.5f), 4, 4000);
         const int heightPx = ClampInt(

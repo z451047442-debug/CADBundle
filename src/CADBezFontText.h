@@ -102,6 +102,13 @@ void CADAddScreenTextBox(ViewExp* vpt, const Matrix3& objectTM,
                          float rightPx, float bottomPx, float screenScale,
                          Box3& box);
 
+// Same rectangle in world units. Use this for model-space text, where the
+// size must not depend on perspective or the object's distance from the eye.
+void CADAddWorldTextBox(ViewExp* vpt, const Matrix3& objectTM,
+                        const Point3& anchorLocal, float leftWorld,
+                        float topWorld, float rightWorld, float bottomWorld,
+                        Box3& box);
+
 // Returns the screen-aligned axes (right, up, view normal) in world space.
 bool CADGetBillboardAxes(ViewExp* vpt, Point3& right, Point3& up,
                          Point3& normal);

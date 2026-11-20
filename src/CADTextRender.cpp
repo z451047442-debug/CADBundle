@@ -66,18 +66,21 @@ void CADText::GetLocalBoundBox(TimeValue t, INode* inode, ViewExp* vpt,
     MSTR fontName;
     float fontSize = 12.0f;
     Color color;
-    if (!GetParams(t, position, text, fontSize, fontName, color))
+    int sizeMode = 0;
+    if (!GetParams(t, position, text, fontSize, fontName, color, sizeMode))
     {
         return;
     }
 
     const Matrix3 objectTM = inode ? inode->GetObjectTM(t) : Matrix3();
     const float screenScale = vpt ? CADScreenScale(vpt, objectTM) : 1.0f;
-    const float height = fontSize * screenScale;
+    const float heightWorld =
+        sizeMode == 1 ? fontSize : fontSize * screenScale;
     mFontCache.EnsureFont(fontName);
     const MSTR displayText = SanitizeText(text);
-    const float pixelHeight =
-        screenScale > 0.0f ? height / screenScale : height;
+    const float pixelHeight = screenScale > 0.0f
+                                  ? heightWorld / screenScale
+                                  : heightWorld;
     const CADTextMetrics metrics =
         CADMeasureText(mFontCache, displayText.data(), pixelHeight);
     const float pixelWidth = metrics.widthPx > 0.0f
@@ -86,7 +89,7 @@ void CADText::GetLocalBoundBox(TimeValue t, INode* inode, ViewExp* vpt,
     box += position;
     CADAddScreenTextBox(vpt, objectTM, position, 0.0f, -metrics.heightPx,
                         pixelWidth, 0.0f, screenScale, box);
-    box = CADExpandBox(box, height * 0.2f);
+    box = CADExpandBox(box, heightWorld * 0.2f);
 }
 
 void CADText::GetWorldBoundBox(TimeValue t, INode* inode, ViewExp* vpt,
@@ -136,7 +139,8 @@ int CADText::Display(TimeValue t, INode* inode, ViewExp* vpt, int flags)
     MSTR fontName;
     float fontSize = 12.0f;
     Color color;
-    if (!GetParams(t, position, text, fontSize, fontName, color))
+    int sizeMode = 0;
+    if (!GetParams(t, position, text, fontSize, fontName, color, sizeMode))
     {
         return 0;
     }
@@ -144,7 +148,8 @@ int CADText::Display(TimeValue t, INode* inode, ViewExp* vpt, int flags)
     const Matrix3 objectTM = inode->GetObjectTM(t);
     const float screenScale = CADScreenScale(vpt, objectTM);
     const Point3 textColor(color.r, color.g, color.b);
-    const float height = fontSize * screenScale;
+    const float heightWorld =
+        sizeMode == 1 ? fontSize : fontSize * screenScale;
     mFontCache.EnsureFont(fontName);
 
     const MSTR displayText = SanitizeText(text);
@@ -160,7 +165,7 @@ int CADText::Display(TimeValue t, INode* inode, ViewExp* vpt, int flags)
     }
 
     CADDrawBezFontText(gw, vpt, objectTM, position, displayText.data(),
-                       height, textColor, mFontCache);
+                       heightWorld, textColor, mFontCache);
     return 0;
 }
 
@@ -184,7 +189,8 @@ int CADText::HitTest(TimeValue t, INode* inode, int type, int crossing,
     MSTR fontName;
     float fontSize = 12.0f;
     Color color;
-    if (!GetParams(t, position, text, fontSize, fontName, color))
+    int sizeMode = 0;
+    if (!GetParams(t, position, text, fontSize, fontName, color, sizeMode))
     {
         return 0;
     }
@@ -194,7 +200,11 @@ int CADText::HitTest(TimeValue t, INode* inode, int type, int crossing,
 
     const Matrix3 objectTM = inode->GetObjectTM(t);
     const float screenScale = CADScreenScale(vpt, objectTM);
-    const float height = fontSize * screenScale;
+    const float heightWorld =
+        sizeMode == 1 ? fontSize : fontSize * screenScale;
+    const float pixelHeight = screenScale > 0.0f
+                                  ? heightWorld / screenScale
+                                  : heightWorld;
     mFontCache.EnsureFont(fontName);
     const MSTR displayText = SanitizeText(text);
 
@@ -228,13 +238,14 @@ int CADText::HitTest(TimeValue t, INode* inode, int type, int crossing,
     (void)normal;
 
     const float width =
-        CADMeasureText(mFontCache, displayText.data(), height).widthPx;
+        CADMeasureText(mFontCache, displayText.data(), pixelHeight).widthPx *
+        screenScale;
     const Point3 origin = position * objectTM;
     const Point3 corners[4] = {
         origin,
         origin + right * width,
-        origin + right * width + up * height,
-        origin + up * height,
+        origin + right * width + up * heightWorld,
+        origin + up * heightWorld,
     };
 
     IPoint2 projected[4] = {};

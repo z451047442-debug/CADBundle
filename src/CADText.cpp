@@ -22,6 +22,7 @@ enum TextParam
     text_font_size,
     text_font_name,
     text_color,
+    text_size_mode,
 };
 
 constexpr BlockID kTextParams = 0x1002;
@@ -86,6 +87,11 @@ static ParamBlockDesc2 gTextParamBlock(
         p_ui, TYPE_COLORSWATCH, IDC_TEXT_COLOR,
         p_end,
 
+    text_size_mode, _T("sizeMode"), TYPE_INT, 0, IDS_SIZEMODE,
+        p_default, 0,
+        p_range, 0, 1,
+        p_end,
+
     p_end);
 
 CADText::CADText()
@@ -114,6 +120,10 @@ RefResult CADText::NotifyRefChanged(const Interval&, RefTargetHandle hTarget,
         {
             CADSyncFontComboSelection(hDlg, IDC_TEXT_FONT, mPBlock,
                                       text_font_name);
+            Interval valid;
+            const int mode =
+                mPBlock ? mPBlock->GetInt(text_size_mode, 0, valid) : 0;
+            CADSyncSizeModeCombo(hDlg, IDC_TEXT_SIZEMODE, mode);
         }
     }
     return CADNotifyPBlockChange(this, mPBlock, hTarget, partID, message,
@@ -126,7 +136,8 @@ IParamBlock2* CADText::GetParamBlockByID(BlockID id)
 }
 
 bool CADText::GetParams(TimeValue t, Point3& position, MSTR& text,
-                        float& fontSize, MSTR& fontName, Color& color)
+                        float& fontSize, MSTR& fontName, Color& color,
+                        int& sizeMode)
 {
     if (!mPBlock)
     {
@@ -136,6 +147,7 @@ bool CADText::GetParams(TimeValue t, Point3& position, MSTR& text,
     Interval validity;
     mPBlock->GetValue(text_position, t, position, validity);
     mPBlock->GetValue(text_font_size, t, fontSize, validity);
+    sizeMode = mPBlock->GetInt(text_size_mode, t, validity);
     const MCHAR* textValue = mPBlock->GetStr(text_string, t, validity);
     const MCHAR* fontValue = mPBlock->GetStr(text_font_name, t, validity);
     text = textValue ? textValue : _T("");
@@ -150,6 +162,7 @@ bool CADText::GetParams(TimeValue t, Point3& position, MSTR& text,
     {
         fontSize = kMinTextHeight;
     }
+    sizeMode = sizeMode == 1 ? 1 : 0;
     return true;
 }
 
@@ -317,6 +330,15 @@ LRESULT CALLBACK TextDialogSubclass(HWND hWnd, UINT msg, WPARAM wParam,
         ApplySelectedFont(hWnd, reinterpret_cast<CADText*>(refData));
         return 0;
     }
+    else if (msg == WM_COMMAND && HIWORD(wParam) == CBN_SELCHANGE &&
+             LOWORD(wParam) == IDC_TEXT_SIZEMODE)
+    {
+        CADText* obj = reinterpret_cast<CADText*>(refData);
+        CADApplySizeModeCombo(hWnd, IDC_TEXT_SIZEMODE,
+                              obj ? obj->GetParamBlock(0) : nullptr,
+                              text_size_mode, obj);
+        return 0;
+    }
     return DefSubclassProc(hWnd, msg, wParam, lParam);
 }
 }
@@ -332,6 +354,9 @@ void CADText::BeginEditParams(IObjParam* ip, ULONG flags, Animatable* prev)
         SetWindowSubclass(hDlg, TextDialogSubclass, kTextDialogSubclassId,
                           reinterpret_cast<DWORD_PTR>(this));
         PopulateFontCombo(hDlg, this);
+        Interval valid;
+        const int mode = mPBlock ? mPBlock->GetInt(text_size_mode, 0, valid) : 0;
+        CADPopulateSizeModeCombo(hDlg, IDC_TEXT_SIZEMODE, mode);
     }
 }
 

@@ -47,3 +47,9 @@ void CADApplyFontCombo(HWND hDlg, int controlId, IParamBlock2* pblock,
 // this custom (non-p_ui) combobox itself.
 void CADSyncFontComboSelection(HWND hDlg, int controlId,
                                IParamBlock2* pblock, int paramId);
+
+// Two-item mode selector helpers (0 = screen constant, 1 = model space).
+void CADPopulateSizeModeCombo(HWND hDlg, int controlId, int sizeMode);
+void CADApplySizeModeCombo(HWND hDlg, int controlId, IParamBlock2* pblock,
+                           int paramId, ReferenceMaker* owner);
+void CADSyncSizeModeCombo(HWND hDlg, int controlId, int sizeMode);
