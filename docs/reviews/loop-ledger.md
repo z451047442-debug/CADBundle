@@ -88,6 +88,21 @@
 - 同一问题最大轮次记录：L001 为 2 轮；L004 为 1 轮（均未超过 3 轮上限）。
 - 连续无可验证进展：无。
 - 当前阻塞：无 C 类；B-21 运行时点序待验证；V1 已裁决（≤ max(2 px, 5%)）；U11–U13 修订执行中（B0–B8 已提交，R1 已完成，R2 屏幕空间绘制待实施）。
+- **2026-11-21 V-06 探针复测（安装 DLO SHA-256 `15c133d9…`，`PLUGIN_NEW=1`）：V-06 仍无有效证据，且证明原探针设计不可测。**
+  - 探针 API 错误：`getViewportDib` 不是全局函数（SDK 为 `viewport.getViewportDib()`），原脚本在 `r5Sample` 内抛类型错误；已修正。
+  - 红绘不同步：`redrawViews()` / `forceCompleteRedraw()` / `completeRedraw()` / `windows.processPostedMessages()` 在 MAXScript 顶层循环中均未触发 `Display`。50×50（2500 格）、10×10（100 格）、200×200（40000 格）p50 均为 1–2 ms，无标度差异；系统日志 `font path=` 条目为 0。
+  - `viewport.getViewportDib()` 为固定 ~17–20 ms 的全帧 `BitBlt`+`GetDIBits`+位图分配（SDK `VP_Getviewportdib_cf` 证实），与场景复杂度无关，不能作为帧耗时代理。
+  - 脚本创建场景中 `nodeGetBoundingBox` 恒为 `±0.01`（`CADTable::GetLocalBoundBox` 在 `GetParams` 处早退），屏幕/模型模式均如此；截图 `build/verify/max_live.png` 视口无表格。根因待 C++ 侧定位（疑为脚本创建/缓存路径，而非面板创建路径）。
+  - 结论：V-06 无法由 MAXScript 循环测量；需在 `CADTable::Display` 内加临时 QPC 计时并由消息循环驱动采样，或改由用户手动基准。**待用户裁决。**
+- **2026-11-21 裁决：C++ 临时计时（方案 1）。V-06A/B 已取得有效证据。**
+  - 探针根因（非产品缺陷）：`max zoomext sel` 未把脚本创建的 helper 置入视锥，对象被裁剪，`Display` 从未执行；`GetLocalBoundBox`/`GetWorldBoundBox` 的 box 有效（w=109.8、h=73.2），`hidden=0 nodeHidden=0 vis=1 frozen=0`。改用 `viewport.ZoomToBounds false [0,0,-1] [w,h,1]` 后 `Display` 正常执行。未发现产品级 bbox/可见性缺陷。
+  - 采样方式：`CADTable::Display` 内临时 QPC 计时；`System.Windows.Forms.Timer`（20 ms）在消息循环中每 tick 调 `redrawViews()`，`Display` 在 tick 之间执行；采样 320 tick、每 scene 记录 ≥789 次 `Display` 调用（一次 redraw 会经多视口多次调用）。
+  - 诊断构建 SHA-256 `f4dada62…`（安装于 3ds Max 2027 plugins）。
+  - **V-06A（50×50，2500 可见格，`fb=1 entries=1`，1723×1163 视口）**：n=789，mean 0.477 ms，**p50 0.377 ms**，p90 0.844 ms，**p95 1.024 ms**，p99 1.318 ms，max 2.773 ms。判定：**PASS**（p50 ≤16.7、p95 ≤33）。
+  - **V-06B（10×10，100 可见格，`fb=0 entries=0`）**：n=797，mean 1.482 ms，**p50 1.139 ms**，p90 2.568 ms，**p95 3.199 ms**，p99 4.131 ms，max 4.527 ms。判定：**PASS**。
+  - 观察：BezFont 路径（100 格）单次调用约为 GDI 回落路径（2500 格）的 3 倍，符合字形轮廓细分成本；两者均远低于帧预算。即使按每次 redraw 约 2.5 次 `Display` 调用估算，整帧亦 ≤ ~2.9 ms（p50）/ ~8.0 ms（p95）。
+  - **V-10（诊断移除后）**：`src/CADTablePerfDiag.h` 已删除，`CADTable.cpp`/`CADTableRender.cpp` 已恢复到 HEAD；全新 Rebuild **0 warning / 0 error**；二进制残留检查（`CADTABLE_PERF_LOG`/`Display us=`/`GetParams ok=`/`LocalBoundBox`/`WorldBoundBox`）均为 **0**；`smoke_r1` **29 PASS / 0 FAIL**；静态断言 **fails=0**；R5-1 params 11/11、measure 4/4；R5-2 params 20/20、mode 4/4、V-07 16/16。最终 DLO SHA-256 `096e4445…`，已安装至 3ds Max 2027 plugins。
+  - R5-3 状态：**V-06A/B、V-08、V-10 全部完成**；分支 `ai-r5-3-2026-11-20` 工作区仅剩文档改动，**未合并、未推送**（待用户裁决）。
 
 ## 第 3 步关闭记录
 
