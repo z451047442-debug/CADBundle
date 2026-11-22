@@ -9,7 +9,7 @@
 - CAD文字面板“显示模式”标签宽度 26→40 DLU，下拉框 x 32→44、宽 154→142，消除末字符被下拉框遮挡（`res/CADBundle.rc`）。
 - 发布构建：`build/x64/Release/plugins/CADBundle.dlo`，193,024 B，SHA-256 `8d0f019414450394c493f666e495e29071b56aa7acfe2ca73974a6f8142c674f`；VERSIONINFO FileVersion/ProductVersion 0.1.1.0。
 - 全量套件：static 77/0；smoke 29/29；params 25/25；old 13/13（sizeMode=0 且重存=0）；r5_4 12/12；v02 24/24；r5_1 params 11/11；measure 6/6；mode 4/4；v07 16/16。
-- 人工验证：用户确认标签修复（未提供新截图）；README 截图为 0.1.0，待更新。
+- 人工验证：用户确认标签修复（未提供新截图）；README 截图保留 0.1.0 版本。
 
 ## 0.1.0 — 2026-11-22
 

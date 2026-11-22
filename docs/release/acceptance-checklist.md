@@ -97,7 +97,7 @@ object_type,object_name,field,value_before,value_after,tolerance,pass
 - 旧 `.max` 场景兼容不在 v1 承诺范围；V-02b 已用 pristine 夹具复跑（见下）。
 - 旧场景 V-02b（R5-4 已复跑）：用 old_stage 旧 DLO 重新生成 pristine 夹具，再以当前 DLO 载入；四类加载 sizeMode=0，重存后仍 0（13/13）；记录旧/新双哈希（旧 `1cd24051…`，pristine `2e189f0f…`，当前 `f789f42a…`）。r5_2_old_load.ms 已改为重存到 resaved 路径，不覆盖源夹具。
 - 字体字面诊断（2026-11-22）：默认“宋体”实际字面=宋体（W/i=500/500，拉丁等宽）；SimSun/NSimSun/Microsoft YaHei 在 BezFont 下落到 Arial。默认/UI 使用本地化名称；英文别名不得替代。
-- CAD文字面板“显示模式”标签裁切（0.1.0）：0.1.1 已修复（标签宽 40、下拉 x=44/宽 142）；用户目视确认，README 截图为 0.1.0，待更新。
+- CAD文字面板“显示模式”标签裁切（0.1.0）：0.1.1 已修复（标签宽 40、下拉 x=44/宽 142）；用户目视确认，README 截图保留 0.1.0 版本。
 - 表格 `fontSize=0` 自动字号语义：代码证据为 cellHeight×0.6（屏幕夹取 6–48 px；模型夹取 0.01–10000 单位），运行目视待验证。
 - 面板标签：删除“(屏幕)”限定词后核对可读性、截断/换行，覆盖 100/150/200% DPI。
 - 测试脚本 SHA（2026-11-22 冻结，未入库，J-7）：`r5_2_params.ms` `5efd9c32868602ceb5f25c35a81aa11bc2d7a7f5aaf3cb4572b81501f49df10f`；`v02_verify.ms` `f10c601d724a18029a480722c10a88eb43c838f59e623875a60ea1027a3c21fa`；`r5_2_old_load.ms` `9ba4464b3adc8647c07c272e5a59c5b1ff5f5d52c805d1d5f9ae715f2bee61f5`；`r5_4_size_mode_test.ms` `f42405a766af72552325adc5b7c3bc6e2c7a982f9a4e5a6373da6ac1dfcff462`；`r5_1_measure.ms` `d15c88428778ddf0630b64840e4795c8045f80f5836be5c02bc7680b8f2849cb`。复现依赖本地附件与上述 SHA。
