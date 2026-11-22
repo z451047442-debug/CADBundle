@@ -79,7 +79,7 @@ static ParamBlockDesc2 gTextParamBlock(
         p_end,
 
     text_font_name, _T("fontName"), TYPE_STRING, 0, IDS_TEXT_FONT,
-        p_default, _T("Microsoft YaHei"),
+        p_default, _T("宋体"),
         p_end,
 
     text_color, _T("textColor"), TYPE_RGBA, 0, IDS_TEXT_COLOR,
