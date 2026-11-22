@@ -82,6 +82,9 @@ private:
 
     IParamBlock2* mPBlock = nullptr;
     CADBezFontCache mFontCache;
+    bool mUseFontFallback = false;
+    int mFallbackEntries = 0;
+    int mLastVisibleCells = 0;
     int mRows = 0;
     int mCols = 0;
     bool mSyncing = false;
