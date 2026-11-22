@@ -42,6 +42,20 @@
 | 引线 | 依次点击起点、拐点、文本位置 | 修改面板（注释/箭头/文字高度/颜色） |
 | 表格 | 单击插入 | 修改面板（行列/单元格宽高/颜色/“编辑单元格…”） |
 
+## 界面预览
+
+![CAD 标注与参数面板](docs/images/overview-dimension.jpg)
+
+| 创建面板 | CAD标注参数 |
+|---|---|
+| <a href="docs/images/create-panel.png"><img src="docs/images/create-panel.png" width="260" alt="创建面板"></a> | <a href="docs/images/panel-dimension.png"><img src="docs/images/panel-dimension.png" width="260" alt="CAD标注参数"></a> |
+| **CAD文字参数**（示例：已切换字体/字号） | **CAD引线参数**（示例：已切换字体/字号） |
+| <a href="docs/images/panel-text.png"><img src="docs/images/panel-text.png" width="260" alt="CAD文字参数"></a> | <a href="docs/images/panel-leader.png"><img src="docs/images/panel-leader.png" width="260" alt="CAD引线参数"></a> |
+| **CAD表格参数** | |
+| <a href="docs/images/panel-table.png"><img src="docs/images/panel-table.png" width="260" alt="CAD表格参数"></a> | |
+
+> 截图来自 0.1.0 发布版；CAD文字面板“显示模式”标签的轻微裁切见“已知限制”，计划 0.1.1 修复。
+
 ## 已知限制
 
 - 仅视口注释，不参与渲染、打印或导出（用户裁决 U1）。
@@ -50,6 +64,7 @@
 - 表格单元格文本默认 BezFont；可见格 >480 或像素高 <8 px 时回落 GDI，≤360 且 ≥10 px 恢复（滞回，U7/U10）。
 - 创建入口为创建面板与 MAXScript 构造函数；Utility 面板已按 U11 移除。
 - 旧场景兼容不在 v1 范围（U8）；原 V-02b 13/13 因夹具重存污染已作废，本轮以干净夹具复跑，结果见验收清单。
+- CAD文字面板的“显示模式”标签宽度偏窄（0.1.0），末字符被下拉框轻微遮挡；计划 0.1.1 修复。
 
 ## 版本状态
 
