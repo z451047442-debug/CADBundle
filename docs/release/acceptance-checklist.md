@@ -1,18 +1,18 @@
-# 验收清单与证据包（CADBundle 0.1.0）
+# 验收清单与证据包（CADBundle 0.1.1）
 
-> 状态：**人工验证已于 2026-11-22 由用户确认通过（未提供逐项明细）**；R5-4 复跑证据见 §9。§5 所列未归档项仍按“未验证”保留，不得写成通过。
+> 状态：**0.1.0 人工验证于 2026-11-22 由用户确认通过（未提供逐项明细）；0.1.1 标签裁切修复经用户目视确认（未提供新截图）**；R5-4 复跑证据见 §9。§5 所列未归档项仍按“未验证”保留，不得写成通过。
 
 ## 1. 基线
 
 | 项目 | 值 |
 |---|---|
-| 分支 | `chore/release-0.1.0` |
-| 发布候选提交 | 发布分支定版提交（含 VERSIONINFO）；源码逻辑绑定 `88a92b7`；tag 将指向合并后的最终 HEAD |
-| 构建 | Release x64 全新 `Rebuild`（2026-11-22 21:26，含 VERSIONINFO），0 warning/0 error；日志 `build/verify/r5_4_release_build.log` |
+| 分支 | `chore/release-0.1.1` |
+| 发布候选提交 | 0.1.1 发布分支定版提交（含 VERSIONINFO）；源码逻辑绑定 `db44e06`；tag `v0.1.1` 将指向合并后的最终 HEAD |
+| 构建 | Release x64 全新 `Rebuild`（2026-11-22 22:28，含 VERSIONINFO 0.1.1），0 warning/0 error；日志 `build/verify/r5_4_release_0.1.1_build.log` |
 | 产物 | `build/x64/Release/plugins/CADBundle.dlo`，193,024 字节 |
-| SHA-256 | `87a966e121fd7d174b438fe96835f009816740bcdbedb6c5cf8c62dc16b4f1e8`；stage `build/verify/stage/CADBundle.dlo` 同哈希，进程模块路径已核。PE 头时间戳使重建哈希变化，以本次记录为准 |
+| SHA-256 | `8d0f019414450394c493f666e495e29071b56aa7acfe2ca73974a6f8142c674f`；stage `build/verify/stage/CADBundle.dlo` 同哈希，进程模块路径已核。PE 头时间戳使重建哈希变化，以本次记录为准 |
 
-> 产物绑定说明：发布 DLO 构建于发布分支定版提交（`src/` 与 `88a92b7` 相同，新增 VERSIONINFO 资源）；其后的文档提交不改变二进制。定版 tag 指向含文档的最终 HEAD；验收以产物 SHA 与构建日志为准，不以 tag/提交号替代产物校验。
+> 产物绑定说明：0.1.1 发布 DLO 构建于发布分支定版提交（`src/` 与 `db44e06` 相同，新增 VERSIONINFO 0.1.1 与 Text 标签宽度修复）；其后的文档提交不改变二进制。tag `v0.1.1` 指向含文档的最终 HEAD；验收以产物 SHA 与构建日志为准。
 | 导出 | LibDescription / LibNumberClasses / LibClassDesc / LibVersion / LibInitialize / LibShutdown / CanAutoDefer，全部正确 |
 | 架构/依赖 | x64；core/Geom/maxutil/ParamBlk2 + CRT；无 Qt |
 | V1 阈值 | 屏幕恒定允许偏差 ≤ max(2 px, 5%)（已裁决） |
@@ -97,7 +97,7 @@ object_type,object_name,field,value_before,value_after,tolerance,pass
 - 旧 `.max` 场景兼容不在 v1 承诺范围；V-02b 已用 pristine 夹具复跑（见下）。
 - 旧场景 V-02b（R5-4 已复跑）：用 old_stage 旧 DLO 重新生成 pristine 夹具，再以当前 DLO 载入；四类加载 sizeMode=0，重存后仍 0（13/13）；记录旧/新双哈希（旧 `1cd24051…`，pristine `2e189f0f…`，当前 `f789f42a…`）。r5_2_old_load.ms 已改为重存到 resaved 路径，不覆盖源夹具。
 - 字体字面诊断（2026-11-22）：默认“宋体”实际字面=宋体（W/i=500/500，拉丁等宽）；SimSun/NSimSun/Microsoft YaHei 在 BezFont 下落到 Arial。默认/UI 使用本地化名称；英文别名不得替代。
-- CAD文字面板“显示模式”标签裁切（0.1.0）：`res/CADBundle.rc:178` 标签宽 26 DLU、下拉框 x=32，末字符被压住；计划 0.1.1 修复（标签宽 40、下拉 x=44/宽 142）并重截该面板。
+- CAD文字面板“显示模式”标签裁切（0.1.0）：0.1.1 已修复（标签宽 40、下拉 x=44/宽 142）；用户目视确认，README 截图为 0.1.0，待更新。
 - 表格 `fontSize=0` 自动字号语义：代码证据为 cellHeight×0.6（屏幕夹取 6–48 px；模型夹取 0.01–10000 单位），运行目视待验证。
 - 面板标签：删除“(屏幕)”限定词后核对可读性、截断/换行，覆盖 100/150/200% DPI。
 - 测试脚本 SHA（2026-11-22 冻结，未入库，J-7）：`r5_2_params.ms` `5efd9c32868602ceb5f25c35a81aa11bc2d7a7f5aaf3cb4572b81501f49df10f`；`v02_verify.ms` `f10c601d724a18029a480722c10a88eb43c838f59e623875a60ea1027a3c21fa`；`r5_2_old_load.ms` `9ba4464b3adc8647c07c272e5a59c5b1ff5f5d52c805d1d5f9ae715f2bee61f5`；`r5_4_size_mode_test.ms` `f42405a766af72552325adc5b7c3bc6e2c7a982f9a4e5a6373da6ac1dfcff462`；`r5_1_measure.ms` `d15c88428778ddf0630b64840e4795c8045f80f5836be5c02bc7680b8f2849cb`。复现依赖本地附件与上述 SHA。
@@ -106,11 +106,11 @@ object_type,object_name,field,value_before,value_after,tolerance,pass
 
 人工运行验证通过后，才在独立发布分支完成：
 
-1. 版本号与 VERSIONINFO：已完成（0.1.0.0）。
-2. `CHANGELOG.md`：已去除 Unreleased，记录验证证据与发布产物 SHA-256。
-3. 经合并流程进入主干：待用户确认。
-4. rc 标签与 VERSIONINFO 一并生效：发布构建后核对。
-5. tag 指向最终 HEAD；产物再变须重做；tag 与合并前经用户确认。
+1. 版本号与 VERSIONINFO：已完成（0.1.1.0）。
+2. `CHANGELOG.md`：已记录 0.1.1 修复与发布产物 SHA-256。
+3. 经合并流程进入主干：待执行（--no-ff）。
+4. rc 标签与 VERSIONINFO 一并生效：发布构建已核对（0.1.1.0）。
+5. tag `v0.1.1` 指向最终 HEAD；产物再变须重做。
 
 ## 7. R1 批处理验证（2026-11-19）
 
@@ -152,3 +152,4 @@ object_type,object_name,field,value_before,value_after,tolerance,pass
 - **字体字面诊断**：宋体→宋体（face/logfont=宋体，W/i=500/500）；SimSun/NSimSun/Microsoft YaHei→Arial。r5_1_measure 修正为显式 Arial + 默认宋体等宽/高于缺字回退断言。
 - **人工验证（2026-11-22）**：用户确认通过（未提供逐项明细）；未归档项见 §5。
 - **发布构建（含 VERSIONINFO，2026-11-22）**：`87a966e1…`，193,024 B；全量套件复跑通过（static 77/0、smoke 29/29、params 25/25、old 13/13、r5_4 12/12、v02 24/24、r5_1 params 11/11、measure 6/6、mode 4/4、v07 16/16）。
+- **0.1.1 修复与验证（2026-11-22）**：Text 标签宽 26→40、下拉 x=32→44/宽=154→142；构建 `8d0f0194…`，193,024 B，VERSIONINFO 0.1.1.0；全量套件通过；用户在 GUI 目视确认标签完整（未提供新截图）。
