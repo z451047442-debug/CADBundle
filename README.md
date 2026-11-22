@@ -53,12 +53,12 @@
 
 ## 版本状态
 
-**0.1.0 — Unreleased**。R5-1～R5-4 已合并；R5-4 引入新建默认模型空间、默认宋体与参数面板文本居中。定版仍待 `docs/release/acceptance-checklist.md` §5 未验证项收尾，版本号与 VERSIONINFO 在定版时统一更新。
+**0.1.0（2026-11-22）**。R5-1～R5-4 已合并，人工验证已通过；VERSIONINFO 已加入。§5 中未归档的人工测量项仍按“未验证”保留。
 
 ## 文档索引
 
 - [BUILD.md](BUILD.md)：构建、校验与常见问题
-- [CHANGELOG.md](CHANGELOG.md)：变更记录（Unreleased）
+- [CHANGELOG.md](CHANGELOG.md)：变更记录（0.1.0）
 - [docs/release/acceptance-checklist.md](docs/release/acceptance-checklist.md)：验收清单、证据包模板、运行验证指引
 - [docs/decisions/step4-revision.md](docs/decisions/step4-revision.md)：U11–U13 修订与 R1–R3 批次
 - [docs/development/00-plan.md](docs/development/00-plan.md)：可执行方案

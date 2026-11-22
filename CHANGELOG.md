@@ -1,8 +1,8 @@
 # Changelog
 
-本项目遵循“人工验证通过后才定版”的流程：当前为 Unreleased，版本号与 VERSIONINFO 资源在最终验证后统一更新。
+本项目遵循“人工验证通过后才定版”的流程：0.1.0 已于 2026-11-22 定版，VERSIONINFO 已加入。
 
-## 0.1.0 — Unreleased（待人工运行验证）
+## 0.1.0 — 2026-11-22
 
 ### Added
 
@@ -41,6 +41,7 @@
 
 - **R5-4 复跑（2026-11-22，HEAD `88a92b7`，DLO `f789f42a…`，192,000 B）**：静态 77/0；`smoke_r1` 29/29；`r5_2_params` 25/25；`r5_2_old_load` 13/13（四类加载与重存均 `sizeMode=0`）；`r5_4_size_mode` 12/12；`v02_verify` 24/24；`r5_1_params` 11/11；`r5_1_measure` 6/6；`r5_2_mode` 4/4；`r5_2_v07` 16/16。
 - **字体字面诊断（2026-11-22）**：默认“宋体”在 BezFont 中实际打开字面“宋体”（W/i 均 500，拉丁等宽属字体特性）；`SimSun`/`NSimSun`/`Microsoft YaHei` 在该路径下实际落到 Arial。默认与 UI 字体名应使用本地化名称，不得以英文别名替代；`r5_1_measure` 已改为显式 Arial 验证比例字形，并保留默认宋体等宽与高于缺字回退宽度的断言。
+- **发布构建（2026-11-22）**：`build/x64/Release/plugins/CADBundle.dlo`，193,024 字节，SHA-256 `87a966e121fd7d174b438fe96835f009816740bcdbedb6c5cf8c62dc16b4f1e8`；VERSIONINFO FileVersion/ProductVersion 0.1.0.0；全量套件复跑通过。
 
 - 构建：Release x64 全新 Rebuild 通过，无 warning/error；R5-3 V-10（2026-11-21）0 warning/0 error，诊断残留 0。
 - 发布候选：`build/x64/Release/plugins/CADBundle.dlo`，188,928 字节，SHA-256 `096e4445ac09087b0b4a5e568b889edd77a7d64542af28d5a384ce5e03ec15eb`（V-10 构建）。注意：PE 头时间戳使重建哈希变化（2026-11-22 重建为 `863490de…`）；发布证据以源码提交 + 大小 + 导出/依赖校验为准。
