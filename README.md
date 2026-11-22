@@ -54,7 +54,7 @@
 | **CAD表格参数** | |
 | <a href="docs/images/panel-table.png"><img src="docs/images/panel-table.png" width="260" alt="CAD表格参数"></a> | |
 
-> 截图来自 0.1.0 发布版；CAD文字面板“显示模式”标签的轻微裁切见“已知限制”，计划 0.1.1 修复。
+> 截图来自 0.1.0；CAD文字面板“显示模式”标签已在 0.1.1 修复，截图中仍为 0.1.0 旧版，待更新。
 
 ## 已知限制
 
@@ -64,16 +64,16 @@
 - 表格单元格文本默认 BezFont；可见格 >480 或像素高 <8 px 时回落 GDI，≤360 且 ≥10 px 恢复（滞回，U7/U10）。
 - 创建入口为创建面板与 MAXScript 构造函数；Utility 面板已按 U11 移除。
 - 旧场景兼容不在 v1 范围（U8）；原 V-02b 13/13 因夹具重存污染已作废，本轮以干净夹具复跑，结果见验收清单。
-- CAD文字面板的“显示模式”标签宽度偏窄（0.1.0），末字符被下拉框轻微遮挡；计划 0.1.1 修复。
+- CAD文字面板的“显示模式”标签在 0.1.0 中偏窄；0.1.1 已修复（README 截图为 0.1.0，待更新）。
 
 ## 版本状态
 
-**0.1.0（2026-11-22）**。R5-1～R5-4 已合并，人工验证已通过；VERSIONINFO 已加入。§5 中未归档的人工测量项仍按“未验证”保留。
+**0.1.1（2026-11-22）**。R5-1～R5-4 已合并；0.1.1 修复 CAD文字面板“显示模式”标签裁切；VERSIONINFO 已加入。§5 中未归档的人工测量项仍按“未验证”保留。
 
 ## 文档索引
 
 - [BUILD.md](BUILD.md)：构建、校验与常见问题
-- [CHANGELOG.md](CHANGELOG.md)：变更记录（0.1.0）
+- [CHANGELOG.md](CHANGELOG.md)：变更记录（0.1.1）
 - [docs/release/acceptance-checklist.md](docs/release/acceptance-checklist.md)：验收清单、证据包模板、运行验证指引
 - [docs/decisions/step4-revision.md](docs/decisions/step4-revision.md)：U11–U13 修订与 R1–R3 批次
 - [docs/development/00-plan.md](docs/development/00-plan.md)：可执行方案

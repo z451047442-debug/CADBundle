@@ -175,8 +175,8 @@ BEGIN
     COMBOBOX        IDC_TEXT_FONT, 32, 86, 154, 120, CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     LTEXT           "颜色", IDC_STATIC, 4, 108, 26, 8
     CONTROL         "", IDC_TEXT_COLOR, "ColorSwatch", WS_TABSTOP, 32, 105, 50, 12
-    LTEXT           "显示模式", IDC_STATIC, 4, 124, 26, 8
-    COMBOBOX        IDC_TEXT_SIZEMODE, 32, 120, 154, 120, CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "显示模式", IDC_STATIC, 4, 124, 40, 8
+    COMBOBOX        IDC_TEXT_SIZEMODE, 44, 120, 142, 120, CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
 END
 
 IDD_CAD_LEADER DIALOG DISCARDABLE 0, 0, 190, 220
@@ -294,8 +294,8 @@ BEGIN
 END
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 0,1,0,0
- PRODUCTVERSION 0,1,0,0
+ FILEVERSION 0,1,1,0
+ PRODUCTVERSION 0,1,1,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -312,12 +312,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "CADBundle"
             VALUE "FileDescription", "CADBundle 3ds Max 插件"
-            VALUE "FileVersion", "0.1.0.0"
+            VALUE "FileVersion", "0.1.1.0"
             VALUE "InternalName", "CADBundle"
             VALUE "LegalCopyright", "Copyright (C) 2026 CADBundle"
             VALUE "OriginalFilename", "CADBundle.dlo"
             VALUE "ProductName", "CAD 注释工具集"
-            VALUE "ProductVersion", "0.1.0.0"
+            VALUE "ProductVersion", "0.1.1.0"
         END
     END
     BLOCK "VarFileInfo"

@@ -84,4 +84,4 @@ sha256sum build/x64/Release/plugins/CADBundle.dlo
 
 ## 版本与发布
 
-构建产物当前为 **0.1.0（2026-11-22）**；VERSIONINFO 已加入。发布流程见 `docs/release/acceptance-checklist.md`。
+构建产物当前为 **0.1.1（2026-11-22）**；VERSIONINFO 已加入。发布流程见 `docs/release/acceptance-checklist.md`。
