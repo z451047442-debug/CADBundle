@@ -102,7 +102,9 @@
   - **V-06B（10×10，100 可见格，`fb=0 entries=0`）**：n=797，mean 1.482 ms，**p50 1.139 ms**，p90 2.568 ms，**p95 3.199 ms**，p99 4.131 ms，max 4.527 ms。判定：**PASS**。
   - 观察：BezFont 路径（100 格）单次调用约为 GDI 回落路径（2500 格）的 3 倍，符合字形轮廓细分成本；两者均远低于帧预算。即使按每次 redraw 约 2.5 次 `Display` 调用估算，整帧亦 ≤ ~2.9 ms（p50）/ ~8.0 ms（p95）。
   - **V-10（诊断移除后）**：`src/CADTablePerfDiag.h` 已删除，`CADTable.cpp`/`CADTableRender.cpp` 已恢复到 HEAD；全新 Rebuild **0 warning / 0 error**；二进制残留检查（`CADTABLE_PERF_LOG`/`Display us=`/`GetParams ok=`/`LocalBoundBox`/`WorldBoundBox`）均为 **0**；`smoke_r1` **29 PASS / 0 FAIL**；静态断言 **fails=0**；R5-1 params 11/11、measure 4/4；R5-2 params 20/20、mode 4/4、V-07 16/16。最终 DLO SHA-256 `096e4445…`，已安装至 3ds Max 2027 plugins。
-  - R5-3 状态：**V-06A/B、V-08、V-10 全部完成**；分支 `ai-r5-3-2026-11-20` 工作区仅剩文档改动，**未合并、未推送**（待用户裁决）。
+  - R5-3 状态：**V-06A/B、V-08、V-10 全部完成**；分支 `ai-r5-3-2026-11-20` 的代码与文档已合并（见下条合并记录）。
+- 合并（2026-11-22）：`git merge --no-ff ai-r5-3-2026-11-20` → merge commit `5f9550c`；当前分支 `main`；工作区干净；**仓库未配置 remote，未推送**。
+- 文档同步（2026-11-22）：`docs/release/acceptance-checklist.md`、`README.md`、`CHANGELOG.md` 更新至 R5 现状；`build/verify/r5_3_perf_gui_result.txt` 文件头已标注为无效探针。
 
 ## 第 3 步关闭记录
 
