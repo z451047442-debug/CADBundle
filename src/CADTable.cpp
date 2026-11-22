@@ -110,7 +110,7 @@ static ParamBlockDesc2 gTableParamBlock(
         p_end,
 
     table_font_name, _T("fontName"), TYPE_STRING, 0, IDS_TABLE_FONT,
-        p_default, _T("Microsoft YaHei"),
+        p_default, _T("宋体"),
         p_end,
 
     table_font_size, _T("fontSize"), TYPE_FLOAT, 0, IDS_TABLE_FONTSIZE,
