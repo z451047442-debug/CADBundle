@@ -126,7 +126,7 @@ static ParamBlockDesc2 gLeaderParamBlock(
 
 CADLeader::CADLeader()
 {
-    GetCADLeaderDesc()->MakeAutoParamBlocks(this);
+    CADMakeAutoParamBlocks(this, GetCADLeaderDesc(), leader_size_mode);
 }
 
 void CADLeader::SetReference(int index, RefTargetHandle target)
@@ -317,9 +317,17 @@ LRESULT CALLBACK LeaderDialogSubclass(HWND hWnd, UINT msg, WPARAM wParam,
              LOWORD(wParam) == IDC_LEAD_SIZEMODE)
     {
         CADLeader* leader = reinterpret_cast<CADLeader*>(refData);
-        CADApplySizeModeCombo(hWnd, IDC_LEAD_SIZEMODE,
-                              leader ? leader->GetParamBlock(0) : nullptr,
-                              leader_size_mode, leader);
+        IParamBlock2* pblock = leader ? leader->GetParamBlock(0) : nullptr;
+        Point3 anchor(0.0f, 0.0f, 0.0f);
+        if (pblock)
+        {
+            Interval valid;
+            pblock->GetValue(leader_textpos, 0, anchor, valid);
+        }
+        const int kSizeParams[] = { leader_texth };
+        CADApplySizeModeCombo(hWnd, IDC_LEAD_SIZEMODE, pblock,
+                              leader_size_mode, leader, anchor,
+                              kSizeParams, 1);
         return 0;
     }
     return DefSubclassProc(hWnd, msg, wParam, lParam);
@@ -343,6 +351,7 @@ void CADLeader::BeginEditParams(IObjParam* ip, ULONG flags, Animatable* prev)
         const int mode =
             mPBlock ? mPBlock->GetInt(leader_size_mode, 0, valid) : 0;
         CADPopulateSizeModeCombo(hDlg, IDC_LEAD_SIZEMODE, mode);
+        CADCenterCustEditText(hDlg);
     }
 }
 

@@ -96,7 +96,7 @@ static ParamBlockDesc2 gTextParamBlock(
 
 CADText::CADText()
 {
-    GetCADTextDesc()->MakeAutoParamBlocks(this);
+    CADMakeAutoParamBlocks(this, GetCADTextDesc(), text_size_mode);
 }
 
 void CADText::SetReference(int index, RefTargetHandle target)
@@ -334,9 +334,10 @@ LRESULT CALLBACK TextDialogSubclass(HWND hWnd, UINT msg, WPARAM wParam,
              LOWORD(wParam) == IDC_TEXT_SIZEMODE)
     {
         CADText* obj = reinterpret_cast<CADText*>(refData);
-        CADApplySizeModeCombo(hWnd, IDC_TEXT_SIZEMODE,
-                              obj ? obj->GetParamBlock(0) : nullptr,
-                              text_size_mode, obj);
+        IParamBlock2* pblock = obj ? obj->GetParamBlock(0) : nullptr;
+        const int kSizeParams[] = { text_font_size };
+        CADApplySizeModeCombo(hWnd, IDC_TEXT_SIZEMODE, pblock, text_size_mode,
+                              obj, Point3(0.0f, 0.0f, 0.0f), kSizeParams, 1);
         return 0;
     }
     return DefSubclassProc(hWnd, msg, wParam, lParam);
@@ -357,6 +358,7 @@ void CADText::BeginEditParams(IObjParam* ip, ULONG flags, Animatable* prev)
         Interval valid;
         const int mode = mPBlock ? mPBlock->GetInt(text_size_mode, 0, valid) : 0;
         CADPopulateSizeModeCombo(hDlg, IDC_TEXT_SIZEMODE, mode);
+        CADCenterCustEditText(hDlg);
     }
 }
 

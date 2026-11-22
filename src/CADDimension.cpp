@@ -143,7 +143,7 @@ static ParamBlockDesc2 gDimParamBlock(
 
 CADDimension::CADDimension()
 {
-    GetCADDimensionDesc()->MakeAutoParamBlocks(this);
+    CADMakeAutoParamBlocks(this, GetCADDimensionDesc(), dim_size_mode);
 }
 
 void CADDimension::SetReference(int index, RefTargetHandle target)
@@ -358,9 +358,18 @@ LRESULT CALLBACK DimensionDialogSubclass(HWND hWnd, UINT msg, WPARAM wParam,
              LOWORD(wParam) == IDC_DIM_SIZEMODE)
     {
         CADDimension* dimension = reinterpret_cast<CADDimension*>(refData);
-        CADApplySizeModeCombo(hWnd, IDC_DIM_SIZEMODE,
-                              dimension ? dimension->GetParamBlock(0) : nullptr,
-                              dim_size_mode, dimension);
+        IParamBlock2* pblock = dimension ? dimension->GetParamBlock(0) : nullptr;
+        Point3 p0(0.0f, 0.0f, 0.0f);
+        Point3 p1(0.0f, 0.0f, 0.0f);
+        if (pblock)
+        {
+            Interval valid;
+            pblock->GetValue(dim_p0, 0, p0, valid);
+            pblock->GetValue(dim_p1, 0, p1, valid);
+        }
+        const int kSizeParams[] = { dim_texth };
+        CADApplySizeModeCombo(hWnd, IDC_DIM_SIZEMODE, pblock, dim_size_mode,
+                              dimension, (p0 + p1) * 0.5f, kSizeParams, 1);
         return 0;
     }
     return DefSubclassProc(hWnd, msg, wParam, lParam);
@@ -384,6 +393,7 @@ void CADDimension::BeginEditParams(IObjParam* ip, ULONG flags, Animatable* prev)
         const int mode =
             mPBlock ? mPBlock->GetInt(dim_size_mode, 0, valid) : 0;
         CADPopulateSizeModeCombo(hDlg, IDC_DIM_SIZEMODE, mode);
+        CADCenterCustEditText(hDlg);
     }
 }
 
