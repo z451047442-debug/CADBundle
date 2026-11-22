@@ -69,7 +69,7 @@ BEGIN
     IDS_TABLE_LINECOL   "网格颜色"
     IDS_TABLE_TEXTCOL   "文字颜色"
     IDS_TABLE_CELLS     "单元格文本"
-    IDS_SIZEMODE        "文字大小"
+    IDS_SIZEMODE        "显示模式"
     IDS_SIZEMODE_SCREEN "屏幕恒定"
     IDS_SIZEMODE_MODEL  "模型空间"
     IDS_LEAD_FONT       "字体"
@@ -130,10 +130,10 @@ BEGIN
     CONTROL         "", IDC_DIM_P2ZSPIN, "SpinnerControl", 0x0, 171, 32, 7, 10
 
     CONTROL         "显示 P0/P1/P2 坐标", IDC_DIM_SHOWXYZ, "Button", BS_AUTOCHECKBOX | WS_TABSTOP, 4, 50, 150, 10
-    LTEXT           "箭头大小（屏幕）", IDC_STATIC, 4, 68, 60, 8
+    LTEXT           "箭头大小", IDC_STATIC, 4, 68, 60, 8
     CONTROL         "", IDC_DIM_ARROW, "CustEdit", WS_TABSTOP, 70, 66, 28, 10
     CONTROL         "", IDC_DIM_ARROWSPIN, "SpinnerControl", 0x0, 99, 66, 7, 10
-    LTEXT           "文字高度（屏幕）", IDC_STATIC, 4, 82, 60, 8
+    LTEXT           "文字高度", IDC_STATIC, 4, 82, 60, 8
     CONTROL         "", IDC_DIM_TEXTH, "CustEdit", WS_TABSTOP, 70, 80, 28, 10
     CONTROL         "", IDC_DIM_TEXTHSPIN, "SpinnerControl", 0x0, 99, 80, 7, 10
     LTEXT           "延伸线超出", IDC_STATIC, 4, 96, 60, 8
@@ -148,7 +148,7 @@ BEGIN
     CONTROL         "", IDC_DIM_TEXTCOL, "ColorSwatch", WS_TABSTOP, 70, 139, 50, 12
     LTEXT           "字体", IDC_STATIC, 4, 160, 60, 8
     COMBOBOX        IDC_DIM_FONT, 70, 156, 112, 120, CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    LTEXT           "文字大小", IDC_STATIC, 4, 178, 60, 8
+    LTEXT           "显示模式", IDC_STATIC, 4, 178, 60, 8
     COMBOBOX        IDC_DIM_SIZEMODE, 70, 174, 112, 120, CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
 END
 
@@ -175,7 +175,7 @@ BEGIN
     COMBOBOX        IDC_TEXT_FONT, 32, 86, 154, 120, CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     LTEXT           "颜色", IDC_STATIC, 4, 108, 26, 8
     CONTROL         "", IDC_TEXT_COLOR, "ColorSwatch", WS_TABSTOP, 32, 105, 50, 12
-    LTEXT           "文字大小", IDC_STATIC, 4, 124, 26, 8
+    LTEXT           "显示模式", IDC_STATIC, 4, 124, 26, 8
     COMBOBOX        IDC_TEXT_SIZEMODE, 32, 120, 154, 120, CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
 END
 
@@ -227,7 +227,7 @@ BEGIN
     CONTROL         "", IDC_LEAD_LINECOL, "ColorSwatch", WS_TABSTOP, 32, 117, 50, 12
     LTEXT           "文字颜色", IDC_STATIC, 4, 136, 40, 8
     CONTROL         "", IDC_LEAD_TEXTCOL, "ColorSwatch", WS_TABSTOP, 32, 133, 50, 12
-    LTEXT           "文字大小", IDC_STATIC, 4, 154, 40, 8
+    LTEXT           "显示模式", IDC_STATIC, 4, 154, 40, 8
     COMBOBOX        IDC_LEAD_SIZEMODE, 32, 150, 154, 120, CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
 END
 
@@ -269,7 +269,7 @@ BEGIN
     CONTROL         "", IDC_TABLE_LINECOL, "ColorSwatch", WS_TABSTOP, 32, 109, 50, 12
     LTEXT           "文字颜色", IDC_STATIC, 4, 128, 40, 8
     CONTROL         "", IDC_TABLE_TEXTCOL, "ColorSwatch", WS_TABSTOP, 32, 125, 50, 12
-    LTEXT           "文字大小", IDC_STATIC, 4, 144, 40, 8
+    LTEXT           "显示模式", IDC_STATIC, 4, 144, 40, 8
     COMBOBOX        IDC_TABLE_SIZEMODE, 32, 140, 154, 120, CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
 END
 
