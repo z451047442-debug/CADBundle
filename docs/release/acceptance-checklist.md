@@ -4,15 +4,13 @@
 
 ## 1. 基线
 
-> 以下为 R5-3 历史基线；R5-4 干净 Rebuild 后替换为当前 HEAD 的真实提交、大小与 SHA。
-
 | 项目 | 值 |
 |---|---|
-| 分支 | `main` |
-| 发布候选提交 | `5f9550c`（merge: R5-3 表格字体回落与性能验证） |
-| 构建 | Release x64；R5-3 V-10 全新 `Rebuild` 0 warning/0 error（2026-11-21）；2026-11-22 增量重建复核通过 |
-| 产物 | `build/x64/Release/plugins/CADBundle.dlo`，188,928 字节 |
-| SHA-256 | `096e4445ac09087b0b4a5e568b889edd77a7d64542af28d5a384ce5e03ec15eb`（V-10 构建）。注意：PE 头 `time date stamp` 使重建哈希变化（2026-11-22 重建为 `863490de…`）；发布证据以源码提交 + 大小 + 导出/依赖校验为准，或改用 `/Brepro` 可复现构建 |
+| 分支 | `ai-review-fix-2026-11-22` |
+| 发布候选提交 | `88a92b7`（docs: R5-4 同步与资源标签；`src/` 与 HEAD 一致） |
+| 构建 | Release x64 全新 `Rebuild`（2026-11-22 21:07），0 warning/0 error；日志 `build/verify/r5_4_final_rebuild.log` |
+| 产物 | `build/x64/Release/plugins/CADBundle.dlo`，192,000 字节 |
+| SHA-256 | `f789f42a4a0d01ef50ba1f90d305864e7d97f816bbbe0987826009031b912bf8`；stage `build/verify/stage/CADBundle.dlo` 同哈希，进程模块路径已核。PE 头时间戳使重建哈希变化，以本次记录为准 |
 | 导出 | LibDescription / LibNumberClasses / LibClassDesc / LibVersion / LibInitialize / LibShutdown / CanAutoDefer，全部正确 |
 | 架构/依赖 | x64；core/Geom/maxutil/ParamBlk2 + CRT；无 Qt |
 | V1 阈值 | 屏幕恒定允许偏差 ≤ max(2 px, 5%)（已裁决） |
@@ -26,11 +24,11 @@
 | A3 | ~~Utility 面板~~（U11 已移除） | —— | 不适用（B-23 随之关闭） |
 | A4 | 四类公开可创建（U11 放宽） | 静态 + 批处理构造 | 通过（静态/批处理；创建面板显示经用户复核） |
 | A5 | 四类对象可创建 | MAXScript 构造；面板/鼠标创建 T4/T7/T9/T10 | 部分验证：MAXScript 构造通过；创建面板按钮用户复核（2026-11-20）；逐工具鼠标创建步骤未单独归档 |
-| A6 | 显示模式：新建默认 sizeMode=1；屏幕恒定（0）需显式设置后验证（箭头/文字/延伸线/表格） | T6 像素测量 1×/2×/4×，3 次，V1 判据；V-07 bbox | 部分验证：V-07 16/16 为 R5-2 旧默认证据；R5-4 复跑后回填 |
+| A6 | 显示模式：新建默认 sizeMode=1；屏幕恒定（0）需显式设置后验证（箭头/文字/延伸线/表格） | T6 像素测量 1×/2×/4×，3 次，V1 判据；V-07 bbox | 部分验证：V-07 16/16 为 R5-2 旧默认证据；T6 逐像素测量仍待人工（本次未复跑） |
 | A7 | 文字：字体/字号/颜色生效，回退可见 | T7/T8；V-03b | 部分验证：V-03b 字体切换目视通过（用户，2026-11-20）；BezFont/CJK 回退有实现与回归覆盖；字号/颜色逐项目视未单独归档 |
 | A8 | 引线：折线/箭头/注释，坐标 1e-4 一致 | T9；V-05 | 部分验证：V-05 渲染/命中目视通过（用户，2026-11-20）；坐标 1e-4 逐项比对未单独归档 |
 | A9 | 表格：网格、编辑器、行列迁移 | T10–T13；V-01 | 部分验证：表格编辑器逐格编辑经用户复核（V-01，2026-11-20）；行列迁移按交集保留有实现；迁移场景未单独归档 |
-| A10 | 保存→Reset→重开逐字段一致；2×3 实验 | T14/T15/T16；R5 参数套件 | 部分验证：四类参数与 2×3 cellTexts 批处理通过；sizeMode 三循环 20/20、旧 DLO 场景 13/13 均为旧产物证据（夹具污染/默认值变化），R5-4 复跑后回填；损坏 chunk T16 待人工 |
+| A10 | 保存→Reset→重开逐字段一致；2×3 实验 | T14/T15/T16；R5 参数套件 | 部分验证：R5-4 复跑 r5_2_params 25/25；旧场景 pristine 夹具 13/13，四类加载 sizeMode=0 且重存后仍 0；损坏 chunk T16 待人工 |
 | A11 | 屏幕恒定公式为完整式 | 静态（与 A12 交叉） | 静态通过 |
 | A12 | 连续线经 DrawLineProc/polyline；无 DrawLine/DrawRectangle | 静态扫描 | 静态通过（0 处） |
 | A13 | 完整性：无 TODO/占位、资源 ID 一致、行数约束 | 静态 | **部分通过**：无 TODO/占位、资源 ID 一致、`r5_1_static.ps1` fails=0；但 7 个源文件超 500 行（`CADBezFontText.cpp` 581、`CADDimensionRender.cpp` 569、`CADDimension.cpp` 564、`CADLeader.cpp` 520、`CADTable.cpp` 510、`CADText.cpp` 502、`CADTableRender.cpp` 502），行数约束未通过 |
@@ -94,11 +92,12 @@ object_type,object_name,field,value_before,value_after,tolerance,pass
 - A13：源文件行数约束（7 个文件超 500 行，见 §2 A13）。
 - 空文本/长文本逐项目视（截断逻辑有实现，V-07 覆盖表格用例）。
 - 表格 GDI 回落的目视外观；回落路径与数值性能已由 V-06A/B 覆盖。
-- 旧 `.max` 场景兼容不在 v1 承诺范围；V-02b 旧证据已作废，待干净夹具复跑。
-- 旧场景 V-02b：原夹具被 `r5_2_old_load.ms:36` 重存污染；须用 old_stage 旧 DLO 重新生成 pristine 夹具，再以当前 DLO 载入，记录旧/新双哈希。
+- 旧 `.max` 场景兼容不在 v1 承诺范围；V-02b 已用 pristine 夹具复跑（见下）。
+- 旧场景 V-02b（R5-4 已复跑）：用 old_stage 旧 DLO 重新生成 pristine 夹具，再以当前 DLO 载入；四类加载 sizeMode=0，重存后仍 0（13/13）；记录旧/新双哈希（旧 `1cd24051…`，pristine `2e189f0f…`，当前 `f789f42a…`）。r5_2_old_load.ms 已改为重存到 resaved 路径，不覆盖源夹具。
+- 字体字面诊断（2026-11-22）：默认“宋体”实际字面=宋体（W/i=500/500，拉丁等宽）；SimSun/NSimSun/Microsoft YaHei 在 BezFont 下落到 Arial。默认/UI 使用本地化名称；英文别名不得替代。
 - 表格 `fontSize=0` 自动字号语义：代码证据为 cellHeight×0.6（屏幕夹取 6–48 px；模型夹取 0.01–10000 单位），运行目视待验证。
 - 面板标签：删除“(屏幕)”限定词后核对可读性、截断/换行，覆盖 100/150/200% DPI。
-- 测试脚本 SHA：脚本冻结后计算并记录；脚本未入库（J-7），复现依赖本地附件与 SHA。
+- 测试脚本 SHA（2026-11-22 冻结，未入库，J-7）：`r5_2_params.ms` `5efd9c32868602ceb5f25c35a81aa11bc2d7a7f5aaf3cb4572b81501f49df10f`；`v02_verify.ms` `f10c601d724a18029a480722c10a88eb43c838f59e623875a60ea1027a3c21fa`；`r5_2_old_load.ms` `9ba4464b3adc8647c07c272e5a59c5b1ff5f5d52c805d1d5f9ae715f2bee61f5`；`r5_4_size_mode_test.ms` `f42405a766af72552325adc5b7c3bc6e2c7a982f9a4e5a6373da6ac1dfcff462`；`r5_1_measure.ms` `d15c88428778ddf0630b64840e4795c8045f80f5836be5c02bc7680b8f2849cb`。复现依赖本地附件与上述 SHA。
 
 ## 6. 定版条件（流程 11.6）
 
@@ -139,11 +138,12 @@ object_type,object_name,field,value_before,value_after,tolerance,pass
 
 ## 9. R5 验证记录（2026-11-20 ～ 2026-11-22）
 
-> 以下 R5-1～R5-3 数字为历史记录；R5-4 默认值变更后，20/20、13/13、r5_4 12 PASS 均不得作为当前放行证据。
+> 以下 R5-1～R5-3 数字为历史记录；当前放行证据见本节末尾 R5-4 复跑。
 
 - R5-1 合并 `6dffbb4`：四类字体 UI、共享度量、`CADScreenDraw.cpp` 拆分、四对话框 ≤190 DLU；用户 GUI 确认 V-03b/V-04/V-05。
 - R5-2 合并 `23fabbf`：四类 sizeMode（屏幕/模型）与撤销同步；params 20/20、mode 4/4、V-07 16/16、旧场景 V-02b 13/13；用户 GUI 确认四面板切换与旋转/透视命中/bbox。
 - R5-3 合并 `5f9550c`：表格 GDI 回落滞回；V-06A/B（50×50 p50 0.377 ms / p95 1.024 ms；10×10 p50 1.139 ms / p95 3.199 ms，均 PASS）；V-08 回滚演练三次构建 0 error + smoke 29 PASS；V-10 干净重建 0 warning/0 error、诊断残留 0。
 - 回归：`smoke_r1` 29/29；R5-1 params 11/11 + measure 4/4；R5-2 params 20/20 + mode 4/4 + V-07 16/16；`r5_1_static.ps1` fails=0（2026-11-22 复跑）。
 - 证据：`docs/reviews/loop-ledger.md`、`build/verify/*_result.txt`（其中 `r5_3_perf_gui_result.txt` 为已作废探针，文件头已标注）。
-- R5-4 复跑：待回填（干净 Rebuild + pristine 夹具 + 更新后断言）。
+- **R5-4 复跑（2026-11-22，HEAD `88a92b7`，DLO `f789f42a…`，192,000 B）**：static 77/0；smoke 29/29；r5_2_params 25/25；r5_2_old_load 13/13（四类加载 sizeMode=0，重存后仍 0）；r5_4 12/12；v02 24/24；r5_1_params 11/11；r5_1_measure 6/6；r5_2_mode 4/4；r5_2_v07 16/16。
+- **字体字面诊断**：宋体→宋体（face/logfont=宋体，W/i=500/500）；SimSun/NSimSun/Microsoft YaHei→Arial。r5_1_measure 修正为显式 Arial + 默认宋体等宽/高于缺字回退断言。
