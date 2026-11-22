@@ -1,18 +1,18 @@
-# 验收清单与证据包（CADBundle 0.1.0 Unreleased）
+# 验收清单与证据包（CADBundle 0.1.0）
 
-> 状态：**部分人工验证已完成（截至 2026-11-22，R5-4 已合并）**；R5-4 默认值变更的复跑证据待补，定版前仍需完成 §5 未验证项。任何未执行项必须写“未验证”，不得写成通过。
+> 状态：**人工验证已于 2026-11-22 由用户确认通过（未提供逐项明细）**；R5-4 复跑证据见 §9。§5 所列未归档项仍按“未验证”保留，不得写成通过。
 
 ## 1. 基线
 
 | 项目 | 值 |
 |---|---|
-| 分支 | `ai-review-fix-2026-11-22` |
-| 发布候选提交 | `88a92b7`（源码与 rc 标签；DLO 绑定此提交）；`68854a4` 及后续为 docs-only 后裔，不改变二进制；tag 将指向最终 HEAD |
-| 构建 | Release x64 全新 `Rebuild`（2026-11-22 21:07），0 warning/0 error；日志 `build/verify/r5_4_final_rebuild.log` |
-| 产物 | `build/x64/Release/plugins/CADBundle.dlo`，192,000 字节 |
-| SHA-256 | `f789f42a4a0d01ef50ba1f90d305864e7d97f816bbbe0987826009031b912bf8`；stage `build/verify/stage/CADBundle.dlo` 同哈希，进程模块路径已核。PE 头时间戳使重建哈希变化，以本次记录为准 |
+| 分支 | `chore/release-0.1.0` |
+| 发布候选提交 | 发布分支定版提交（含 VERSIONINFO）；源码逻辑绑定 `88a92b7`；tag 将指向合并后的最终 HEAD |
+| 构建 | Release x64 全新 `Rebuild`（2026-11-22 21:26，含 VERSIONINFO），0 warning/0 error；日志 `build/verify/r5_4_release_build.log` |
+| 产物 | `build/x64/Release/plugins/CADBundle.dlo`，193,024 字节 |
+| SHA-256 | `87a966e121fd7d174b438fe96835f009816740bcdbedb6c5cf8c62dc16b4f1e8`；stage `build/verify/stage/CADBundle.dlo` 同哈希，进程模块路径已核。PE 头时间戳使重建哈希变化，以本次记录为准 |
 
-> 产物绑定说明：DLO 构建于 `88a92b7`（`src/` 此后未变化）；其后的 `68854a4` 等文档提交不改变二进制。定版 tag 指向含文档的最终 HEAD；验收以产物 SHA 与构建日志为准，不以 tag/提交号替代产物校验。
+> 产物绑定说明：发布 DLO 构建于发布分支定版提交（`src/` 与 `88a92b7` 相同，新增 VERSIONINFO 资源）；其后的文档提交不改变二进制。定版 tag 指向含文档的最终 HEAD；验收以产物 SHA 与构建日志为准，不以 tag/提交号替代产物校验。
 | 导出 | LibDescription / LibNumberClasses / LibClassDesc / LibVersion / LibInitialize / LibShutdown / CanAutoDefer，全部正确 |
 | 架构/依赖 | x64；core/Geom/maxutil/ParamBlk2 + CRT；无 Qt |
 | V1 阈值 | 屏幕恒定允许偏差 ≤ max(2 px, 5%)（已裁决） |
@@ -105,10 +105,10 @@ object_type,object_name,field,value_before,value_after,tolerance,pass
 
 人工运行验证通过后，才在独立发布分支完成：
 
-1. 更新版本号与 VERSIONINFO；
-2. 更新 `CHANGELOG.md`（去除 Unreleased，记录验证证据路径与产物 SHA-256）；
-3. 经合并流程进入主干。
-4. 核对 Commit B 的 rc 标签与最终 VERSIONINFO 一并生效。
+1. 版本号与 VERSIONINFO：已完成（0.1.0.0）。
+2. `CHANGELOG.md`：已去除 Unreleased，记录验证证据与发布产物 SHA-256。
+3. 经合并流程进入主干：待用户确认。
+4. rc 标签与 VERSIONINFO 一并生效：发布构建后核对。
 5. tag 指向最终 HEAD；产物再变须重做；tag 与合并前经用户确认。
 
 ## 7. R1 批处理验证（2026-11-19）
@@ -149,3 +149,5 @@ object_type,object_name,field,value_before,value_after,tolerance,pass
 - 证据：`docs/reviews/loop-ledger.md`、`build/verify/*_result.txt`（其中 `r5_3_perf_gui_result.txt` 为已作废探针，文件头已标注）。
 - **R5-4 复跑（2026-11-22，HEAD `88a92b7`，DLO `f789f42a…`，192,000 B）**：static 77/0；smoke 29/29；r5_2_params 25/25；r5_2_old_load 13/13（四类加载 sizeMode=0，重存后仍 0）；r5_4 12/12；v02 24/24；r5_1_params 11/11；r5_1_measure 6/6；r5_2_mode 4/4；r5_2_v07 16/16。
 - **字体字面诊断**：宋体→宋体（face/logfont=宋体，W/i=500/500）；SimSun/NSimSun/Microsoft YaHei→Arial。r5_1_measure 修正为显式 Arial + 默认宋体等宽/高于缺字回退断言。
+- **人工验证（2026-11-22）**：用户确认通过（未提供逐项明细）；未归档项见 §5。
+- **发布构建（含 VERSIONINFO，2026-11-22）**：`87a966e1…`，193,024 B；全量套件复跑通过（static 77/0、smoke 29/29、params 25/25、old 13/13、r5_4 12/12、v02 24/24、r5_1 params 11/11、measure 6/6、mode 4/4、v07 16/16）。
