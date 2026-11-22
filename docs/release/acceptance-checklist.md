@@ -7,10 +7,12 @@
 | 项目 | 值 |
 |---|---|
 | 分支 | `ai-review-fix-2026-11-22` |
-| 发布候选提交 | `88a92b7`（docs: R5-4 同步与资源标签；`src/` 与 HEAD 一致） |
+| 发布候选提交 | `88a92b7`（源码与 rc 标签；DLO 绑定此提交）；`68854a4` 及后续为 docs-only 后裔，不改变二进制；tag 将指向最终 HEAD |
 | 构建 | Release x64 全新 `Rebuild`（2026-11-22 21:07），0 warning/0 error；日志 `build/verify/r5_4_final_rebuild.log` |
 | 产物 | `build/x64/Release/plugins/CADBundle.dlo`，192,000 字节 |
 | SHA-256 | `f789f42a4a0d01ef50ba1f90d305864e7d97f816bbbe0987826009031b912bf8`；stage `build/verify/stage/CADBundle.dlo` 同哈希，进程模块路径已核。PE 头时间戳使重建哈希变化，以本次记录为准 |
+
+> 产物绑定说明：DLO 构建于 `88a92b7`（`src/` 此后未变化）；其后的 `68854a4` 等文档提交不改变二进制。定版 tag 指向含文档的最终 HEAD；验收以产物 SHA 与构建日志为准，不以 tag/提交号替代产物校验。
 | 导出 | LibDescription / LibNumberClasses / LibClassDesc / LibVersion / LibInitialize / LibShutdown / CanAutoDefer，全部正确 |
 | 架构/依赖 | x64；core/Geom/maxutil/ParamBlk2 + CRT；无 Qt |
 | V1 阈值 | 屏幕恒定允许偏差 ≤ max(2 px, 5%)（已裁决） |
