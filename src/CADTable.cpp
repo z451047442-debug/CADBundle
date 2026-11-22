@@ -129,7 +129,7 @@ static ParamBlockDesc2 gTableParamBlock(
 
 CADTable::CADTable()
 {
-    GetCADTableDesc()->MakeAutoParamBlocks(this);
+    CADMakeAutoParamBlocks(this, GetCADTableDesc(), table_size_mode);
 }
 
 void CADTable::SetReference(int index, RefTargetHandle target)
@@ -396,9 +396,12 @@ LRESULT CALLBACK TableDialogSubclass(HWND hWnd, UINT msg, WPARAM wParam,
              LOWORD(wParam) == IDC_TABLE_SIZEMODE)
     {
         CADTable* table = reinterpret_cast<CADTable*>(refData);
-        CADApplySizeModeCombo(hWnd, IDC_TABLE_SIZEMODE,
-                              table ? table->GetParamBlock(0) : nullptr,
-                              table_size_mode, table);
+        IParamBlock2* pblock = table ? table->GetParamBlock(0) : nullptr;
+        const int kSizeParams[] = {
+            table_cell_width, table_cell_height, table_font_size};
+        CADApplySizeModeCombo(hWnd, IDC_TABLE_SIZEMODE, pblock,
+                              table_size_mode, table, Point3(0.0f, 0.0f, 0.0f),
+                              kSizeParams, 3);
         return 0;
     }
     else if (msg == WM_COMMAND && LOWORD(wParam) == IDC_TABLE_EDIT)
@@ -480,6 +483,7 @@ void CADTable::BeginEditParams(IObjParam* ip, ULONG flags, Animatable* prev)
         const int mode =
             mPBlock ? mPBlock->GetInt(table_size_mode, 0, valid) : 0;
         CADPopulateSizeModeCombo(hDlg, IDC_TABLE_SIZEMODE, mode);
+        CADCenterCustEditText(hDlg);
     }
 }
 

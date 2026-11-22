@@ -10,7 +10,12 @@
 // The owning class keeps a single reference at slot 0; these helpers do not
 // change the object's inheritance or reference layout.
 
-void CADMakeAutoParamBlocks(ReferenceMaker* owner, ClassDesc2* desc);
+// Creates the auto pblock and, when defaultSizeModeParamId >= 0, initializes
+// that parameter to model space (1) for newly created objects. Old scenes that
+// do not store the parameter still fall back to its p_default (screen mode),
+// so legacy scenes keep their appearance.
+void CADMakeAutoParamBlocks(ReferenceMaker* owner, ClassDesc2* desc,
+                            int defaultSizeModeParamId = -1);
 
 ReferenceTarget* CADClonePBlockRef(IParamBlock2* pblock, RemapDir& remap);
 
@@ -48,8 +53,19 @@ void CADApplyFontCombo(HWND hDlg, int controlId, IParamBlock2* pblock,
 void CADSyncFontComboSelection(HWND hDlg, int controlId,
                                IParamBlock2* pblock, int paramId);
 
+// Vertically centers the text inside every CustEdit control of a parameter
+// dialog. Uses the SDK's ICustEdit::SetLeading, which offsets the text within
+// the control, so the dialog layout does not change.
+void CADCenterCustEditText(HWND hDlg);
+
 // Two-item mode selector helpers (0 = screen constant, 1 = model space).
+// CADApplySizeModeCombo converts every parameter listed in sizeParamIds when
+// the mode changes so the on-screen size is preserved: screen mode stores
+// pixels, model mode stores world units. objectAnchor is an object-space point
+// used to measure the viewport scale; pass the origin to use the object pivot.
 void CADPopulateSizeModeCombo(HWND hDlg, int controlId, int sizeMode);
 void CADApplySizeModeCombo(HWND hDlg, int controlId, IParamBlock2* pblock,
-                           int paramId, ReferenceMaker* owner);
+                           int paramId, ReferenceMaker* owner,
+                           const Point3& objectAnchor, const int* sizeParamIds,
+                           int sizeParamCount);
 void CADSyncSizeModeCombo(HWND hDlg, int controlId, int sizeMode);
