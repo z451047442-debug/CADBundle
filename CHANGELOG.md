@@ -7,8 +7,9 @@
 ### Added
 
 - **R5-1 字体与度量统一**（2026-11-20，merge `6dffbb4`）：四类统一 BezFont 度量入口（`MeasureText`/`CADWorldHeightToPixels`）；引线/标注/表格新增字体下拉，表格新增字号（6–48 px）；四类参数对话框压缩至 ≤190 DLU；新增 `src/CADScreenDraw.cpp`（屏幕空间绘制/命中公共设施）。
-- **R5-2 sizeMode**（2026-11-20，merge `23fabbf`）：四类新增 `sizeMode`（0=屏幕恒定默认、1=模型空间）与修改面板下拉；表格模型模式为整表世界单位并逐格生成世界文本盒；新增 `CADAddWorldTextBox`。
+- **R5-2 sizeMode**（2026-11-20，merge `23fabbf`）：四类新增 `sizeMode`（0=屏幕恒定、1=模型空间；R5-2 时默认 0，R5-4 起新建默认 1）与修改面板下拉；表格模型模式为整表世界单位并逐格生成世界文本盒；新增 `CADAddWorldTextBox`。
 - **R5-3 表格字体回落**（2026-11-22，merge `5f9550c`）：表格 BezFont/GDI 渲染回落与滞回（可见格 >480 或像素高 <8 px 进入；≤360 且 ≥10 px 恢复）；`EstimateVisibleCells` 估算可见格；状态切换写 3ds Max 日志（不逐帧）。
+- **R5-4 默认值与面板调整**（2026-11-22，merge `9875bdc`、`3865106`）：新建对象默认 `sizeMode=1`（模型空间）；四类默认字体改为 `宋体`；参数面板 CustEdit 文本垂直居中。参数定义 `p_default` 仍为 0；旧场景不含该参数时的加载行为待本轮运行验证，验证前不宣称兼容。
 - **创建入口**（U11）：4 个对象类 `IsPublic=TRUE`，创建面板 **CAD Tools** 与 MAXScript 构造函数均可创建；Utility 面板已移除。
 - **CADDimension**：三点线性标注；ParamBlock2（P0/P1/P2、showXYZ、箭头、文字高度、延伸线、RGB 颜色、精度）；延伸线、闭合三角箭头、BezFont 距离文本、可选坐标标签；退化几何点标记。
 - **CADText**：单击放置；ParamBlock2（位置、内容、字号、字体、RGB 颜色）；BezFont 字形轮廓与 billboard；空心标记可选中。
@@ -36,10 +37,15 @@
 
 ### Verification status
 
+> 以下 R5-3 及更早数字为历史记录；R5-4 复跑结果见下，不得将旧数字作为当前门禁证据。
+
+- **R5-4 复跑（2026-11-22，HEAD `88a92b7`，DLO `f789f42a…`，192,000 B）**：静态 77/0；`smoke_r1` 29/29；`r5_2_params` 25/25；`r5_2_old_load` 13/13（四类加载与重存均 `sizeMode=0`）；`r5_4_size_mode` 12/12；`v02_verify` 24/24；`r5_1_params` 11/11；`r5_1_measure` 6/6；`r5_2_mode` 4/4；`r5_2_v07` 16/16。
+- **字体字面诊断（2026-11-22）**：默认“宋体”在 BezFont 中实际打开字面“宋体”（W/i 均 500，拉丁等宽属字体特性）；`SimSun`/`NSimSun`/`Microsoft YaHei` 在该路径下实际落到 Arial。默认与 UI 字体名应使用本地化名称，不得以英文别名替代；`r5_1_measure` 已改为显式 Arial 验证比例字形，并保留默认宋体等宽与高于缺字回退宽度的断言。
+
 - 构建：Release x64 全新 Rebuild 通过，无 warning/error；R5-3 V-10（2026-11-21）0 warning/0 error，诊断残留 0。
 - 发布候选：`build/x64/Release/plugins/CADBundle.dlo`，188,928 字节，SHA-256 `096e4445ac09087b0b4a5e568b889edd77a7d64542af28d5a384ce5e03ec15eb`（V-10 构建）。注意：PE 头时间戳使重建哈希变化（2026-11-22 重建为 `863490de…`）；发布证据以源码提交 + 大小 + 导出/依赖校验为准。
 - 导出：7 个必需导出全部正确；x64；无 Qt 依赖。
-- **自动化回归**：`smoke_r1` 29/29；R5-1 params 11/11 + measure 4/4；R5-2 params 20/20 + mode 4/4 + V-07 16/16；静态断言 `r5_1_static.ps1` fails=0（2026-11-22 复跑）；旧场景 V-02b 13/13。
+- **自动化回归**：`smoke_r1` 29/29；R5-1 params 11/11 + measure 4/4；R5-2 params 20/20 + mode 4/4 + V-07 16/16；静态断言 `r5_1_static.ps1` fails=0（2026-11-22 复跑）；旧场景 V-02b 13/13（夹具重存污染，已作废，待干净夹具复跑）。
 - **性能（V-06A/B）**：50×50（2500 可见格，回落路径）p50 0.377 ms / p95 1.024 ms；10×10（100 可见格，BezFont）p50 1.139 ms / p95 3.199 ms；均 PASS（帧预算 16.7/33 ms）。
 - **回滚（V-08）**：R5-3→R5-2→R5-1 逆序 revert，三次构建 0 error、smoke 29 PASS。
 - **人工验证**：R5-1 GUI（V-03b/V-04/V-05）与 R5-2 GUI（四面板切换、旋转/透视命中与 bbox）经用户确认；定版前仍需完成 `docs/release/acceptance-checklist.md` §5 未验证项。
@@ -50,7 +56,9 @@
 - `a1dcdd2`–`414b0c2` R5-1（共享度量 / 字体 UI / 对话框重排）
 - `aac4826` R5-2（sizeMode）
 - `d3d3b44` R5-3（表格字体回落）
-- 合并：`6dffbb4`（R5-1）、`23fabbf`（R5-2）、`5f9550c`（R5-3）
+- `8d278ed` R5-4（默认宋体）
+- `f0757c4` R5-4（模型空间默认 / 参数面板文本居中）
+- 合并：`6dffbb4`（R5-1）、`23fabbf`（R5-2）、`5f9550c`（R5-3）、`9875bdc`（R5-4 宋体）、`3865106`（R5-4 模式/居中）
 
 ### 过程提交（B0–B7，摘要）
 
